@@ -28,9 +28,24 @@ The live version runs as a claude.ai artifact. There it gets two platform featur
 
 To host it elsewhere, swap `dbStore()` in `index.html` for a real backend (Supabase or Firebase fit the same shape) and replace the receipt call with your own model API.
 
+## Features
+
+Matches Splitwise Pro, except card import:
+
+- Unlimited expenses, no ads
+- Splits: equal, exact amounts, shares or percentages, and by item
+- Receipt scanning that fills in the items, tax, tip, category and currency
+- Multi-currency: each group has a home currency, and expenses in other currencies convert at a rate you can see and change
+- Custom default split for each group
+- Charts: spending by category and by month
+- Search and filter expenses by text, person or category
+- Edit or delete any expense; group settings for people, Venmo usernames and currency
+- CSV export, one column per person, in the same layout as Splitwise's export
+- Fewest-payment settle-up plan, Venmo pay links and payment records
+
 ## Not built yet
 
-- Edit an existing expense (today: delete and re-add)
-- Currencies other than USD
-- Add or remove people after a group is created
+- Importing transactions from cards (needs a bank-data provider such as Plaid, plus a backend)
+- Live exchange rates inside claude.ai: the viewer blocks outside requests, so people type the rate there. On a standalone host, rates load from api.frankfurter.app.
+- Recurring expenses, comments on expenses, notifications
 - Sign-in on a standalone host

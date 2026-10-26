@@ -10,4 +10,13 @@ assert.strictEqual(sum(net), 0);
 const t = S.settle(net);
 const after = {...net}; t.forEach(x=>{after[x.from]+=x.amount; after[x.to]-=x.amount});
 assert.ok(Object.values(after).every(v=>v===0));
-console.log('ok', net, t);
+const w = S.weightedShares(10000, {a:50, b:30, c:20, d:0});
+assert.deepStrictEqual(w, {a:5000, b:3000, c:2000});
+assert.strictEqual(sum(S.weightedShares(1000, {a:1, b:2})), 1000);
+const cv = S.convert({a:3334, b:3333, c:3333}, 1.0837);
+assert.strictEqual(cv.total, Math.round(10000*1.0837));
+assert.strictEqual(sum(cv.shares), cv.total);
+const csv = S.toCSV([{at:0, desc:'Dinner, "Rosa\'s"', category:'Food', amount:3000, paidBy:'a', shares:{a:1500, b:1500}}],
+  [{id:'a', name:'Ana'}, {id:'b', name:'Ben'}], 'USD');
+assert.strictEqual(csv.split('\n')[1], '"1970-01-01","Dinner, ""Rosa\'s""","Food","30.00","USD","15.00","-15.00"');
+console.log('ok');

@@ -61,7 +61,33 @@
     return out;
   }
 
-  const api = { allocate, equalShares, itemizedShares, balances, settle };
+  // weights: {id: number} (percentages or share counts, any scale).
+  function weightedShares(total, weights) {
+    const ids = Object.keys(weights).filter((id) => weights[id] > 0);
+    const parts = allocate(total, ids.map((id) => weights[id]));
+    return Object.fromEntries(ids.map((id, i) => [id, parts[i]]));
+  }
+
+  // Convert shares in the expense's currency into the group's currency; total and shares still match to the cent.
+  function convert(shares, rate) {
+    const orig = Object.values(shares).reduce((a, b) => a + b, 0);
+    const total = Math.round(orig * rate);
+    return { total, shares: weightedShares(total, shares) };
+  }
+
+  // Splitwise-style export: one row per expense, one column per person (paid minus owed).
+  function toCSV(expenses, members, currency) {
+    const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+    const head = ["Date", "Description", "Category", "Cost", "Currency", ...members.map((m) => m.name)];
+    const rows = expenses.map((e) => [
+      new Date(e.at).toISOString().slice(0, 10), e.kind === "payment" ? "Payment" : e.desc,
+      e.kind === "payment" ? "Payment" : e.category || "General", (e.amount / 100).toFixed(2), currency,
+      ...members.map((m) => (((e.paidBy === m.id ? e.amount : 0) - (e.shares[m.id] || 0)) / 100).toFixed(2)),
+    ]);
+    return [head, ...rows].map((r) => r.map(q).join(",")).join("\n");
+  }
+
+  const api = { allocate, equalShares, itemizedShares, weightedShares, convert, balances, settle, toCSV };
   if (typeof module !== "undefined") module.exports = api;
   else root.Splits = api;
 })(this);

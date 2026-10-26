@@ -31,18 +31,19 @@ h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacin
 .money { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pos { color: var(--pos); } .neg { color: var(--neg); } .muted { color: var(--muted); }
 
-button, select, input { font: inherit; color: inherit; }
+button, select, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 1px solid var(--line); background: var(--raised); border-radius: 10px; padding: 8px 14px; }
 button:hover { border-color: var(--muted); }
+button:disabled { opacity: .45; cursor: not-allowed; }
 button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 button.ghost { background: transparent; }
 button.small { padding: 5px 10px; font-size: 13px; }
 button[data-armed] { border-color: var(--neg); color: var(--neg); }
 .linkbtn { display: inline-block; text-decoration: none; color: var(--accent); border: 1px solid var(--accent); border-radius: 10px; padding: 5px 10px; font-size: 13px; }
-.seg label, .scan label.btn { position: relative; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-input, select { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; min-width: 0; }
-input:focus, select:focus { border-color: var(--accent); outline: none; }
+input, select, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; min-width: 0; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+.num { text-align: right; font-family: var(--mono); }
 
 .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .brand { font-family: var(--display); font-weight: 700; font-size: 22px; margin-right: auto; letter-spacing: -.01em; }
@@ -51,8 +52,9 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
 .notice { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 14px; font-size: 13px; color: var(--muted); }
 .notice.error { border-color: var(--neg); color: var(--neg); }
 
-.hero { display: flex; flex-direction: column; gap: 4px; }
+.hero { display: flex; flex-direction: column; gap: 8px; }
 .hero h1 { font-size: 30px; line-height: 1.15; letter-spacing: -.01em; }
+.hero .tools { display: flex; gap: 8px; flex-wrap: wrap; }
 .section { display: flex; flex-direction: column; gap: 10px; }
 .ledger { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
 .row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
@@ -60,6 +62,8 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
 .row .grow { flex: 1; min-width: 0; }
 .row .title { overflow-wrap: anywhere; }
 .row .sub { font-size: 13px; color: var(--muted); }
+.row.click { cursor: pointer; }
+.row.click:hover { background: var(--raised); }
 .bar { height: 4px; border-radius: 2px; background: var(--raised); margin-top: 6px; position: relative; overflow: hidden; }
 .bar i { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
 .date { font-family: var(--mono); font-size: 12px; color: var(--muted); width: 44px; flex: none; text-transform: uppercase; }
@@ -67,6 +71,19 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .empty { text-align: center; padding: 40px 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .empty p { margin: 0; color: var(--muted); max-width: 34ch; }
+.filters { display: flex; gap: 8px; }
+.filters input { flex: 1; }
+
+.chart { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.hbar { display: grid; grid-template-columns: minmax(0, 7.5em) 1fr auto; gap: 10px; align-items: center; font-size: 13px; }
+.hbar .track { height: 10px; border-radius: 5px; background: var(--raised); overflow: hidden; }
+.hbar .track i { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+.months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: end; height: 140px; padding: 14px 14px 0; }
+.months .col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; min-width: 0; }
+.months .col i { width: 100%; max-width: 36px; background: var(--accent); border-radius: 6px 6px 2px 2px; min-height: 2px; }
+.months .col.zero i { background: var(--line); }
+.months .v { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.mlabels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 6px 14px 14px; font-size: 12px; color: var(--muted); text-align: center; text-transform: uppercase; }
 
 .fab { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   padding: 14px 20px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
@@ -76,10 +93,14 @@ dialog { width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px);
 dialog::backdrop { background: rgba(5, 8, 12, .6); }
 dialog form { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
 dialog h2 { font-size: 20px; text-transform: none; letter-spacing: 0; color: var(--fg); font-weight: 700; }
+dialog h3 { margin: 4px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
 label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.amtrow { display: grid; grid-template-columns: 1fr 96px; gap: 8px; }
+.ratebox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.ratebox input { width: 110px; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.seg label { flex: 1; text-align: center; padding: 8px; cursor: pointer; font-size: 14px; }
+.seg label { flex: 1; text-align: center; padding: 8px 4px; cursor: pointer; font-size: 14px; position: relative; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg label:has(input:checked) { background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -89,18 +110,21 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
 .item { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
 .item .line { display: flex; gap: 8px; }
 .item .line input:first-child { flex: 1; }
-.item .line input.price { width: 92px; text-align: right; font-family: var(--mono); }
-.exact-row { display: flex; align-items: center; gap: 10px; }
-.exact-row span { flex: 1; }
-.exact-row input { width: 110px; text-align: right; font-family: var(--mono); }
-.formfoot { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+.item .line input.price { width: 92px; }
+.prow { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.prow > span:first-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.prow input { width: 100px; }
+.prow .calc { width: 84px; text-align: right; font-size: 13px; color: var(--muted); }
+.mrow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
+.formfoot { display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
 .formfoot .err { margin-right: auto; color: var(--neg); font-size: 13px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
 .scan { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.scan label.btn { border: 1px dashed var(--accent); color: var(--accent); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 500; }
+.scan label.btn { border: 1px dashed var(--accent); color: var(--accent); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 500; position: relative; }
 .scan input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .scan label.btn:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .total-line { display: flex; justify-content: space-between; font-weight: 600; border-top: 1px solid var(--line); padding-top: 10px; }
-@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 26px; } }
+@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 26px; } .seg label { font-size: 13px; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: border-color .15s, background .15s; } }
 </style>
 
@@ -111,25 +135,45 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
     <button id="newGroupBtn" class="small">New group</button>
   </header>
   <div id="notice" class="notice" hidden></div>
-  <main id="main"><div class="empty"><p>Loading your groups…</p></div></main>
+  <main id="main" style="display:flex;flex-direction:column;gap:24px"><div class="empty"><p>Loading your groups…</p></div></main>
+  <section class="section" id="activitySec" hidden>
+    <h2>Activity</h2>
+    <div class="filters">
+      <input id="search" type="search" placeholder="Search expenses, people, categories" aria-label="Search expenses">
+      <select id="catFilter" aria-label="Category"></select>
+    </div>
+    <div class="ledger" id="activity"></div>
+  </section>
 </div>
 <button id="fab" class="primary fab" hidden>+ Add expense</button>
 
 <dialog id="expDlg">
   <form id="expForm" novalidate>
-    <h2>Add expense</h2>
+    <h2 id="expTitle">Add expense</h2>
     <label class="field">What was it for?<input id="expDesc" placeholder="Dinner at Rosa's" autocomplete="off"></label>
     <div class="grid2">
-      <label class="field">Amount (USD)<input id="expAmt" inputmode="decimal" placeholder="0.00"></label>
+      <label class="field">Amount
+        <span class="amtrow"><input id="expAmt" class="num" inputmode="decimal" placeholder="0.00" aria-label="Amount"><select id="expCur" aria-label="Currency"></select></span>
+      </label>
       <label class="field">Paid by<select id="expPayer"></select></label>
     </div>
+    <div class="ratebox" id="rateBox" hidden>
+      <span id="rateFrom"></span><input id="expRate" class="num" inputmode="decimal" aria-label="Exchange rate"><span id="rateTo"></span>
+      <span id="rateNote"></span>
+    </div>
+    <div class="grid2">
+      <label class="field">Category<select id="expCat"></select></label>
+      <label class="field">Date<input id="expDate" type="date"></label>
+    </div>
     <div class="seg" role="radiogroup" aria-label="How to split">
-      <label><input type="radio" name="mode" id="modeEqual" value="equal" checked>Equally</label>
-      <label><input type="radio" name="mode" id="modeExact" value="exact">Exact amounts</label>
-      <label><input type="radio" name="mode" id="modeItems" value="items">By item</label>
+      <label><input type="radio" name="mode" value="equal" checked>Equally</label>
+      <label><input type="radio" name="mode" value="exact">Exact</label>
+      <label><input type="radio" name="mode" value="shares">Shares</label>
+      <label><input type="radio" name="mode" value="items">By item</label>
     </div>
     <div id="paneEqual" class="chips"></div>
     <div id="paneExact" hidden></div>
+    <div id="paneShares" hidden></div>
     <div id="paneItems" hidden>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div class="scan" id="scanRow" hidden>
@@ -139,14 +183,15 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
         <div id="items" style="display:flex;flex-direction:column;gap:8px"></div>
         <button type="button" id="addItem" class="small ghost" style="align-self:flex-start">+ Add item</button>
         <div class="grid2">
-          <label class="field">Tax<input id="itTax" inputmode="decimal" placeholder="0.00"></label>
-          <label class="field">Tip<input id="itTip" inputmode="decimal" placeholder="0.00"></label>
+          <label class="field">Tax<input id="itTax" class="num" inputmode="decimal" placeholder="0.00"></label>
+          <label class="field">Tip<input id="itTip" class="num" inputmode="decimal" placeholder="0.00"></label>
         </div>
-        <div class="total-line"><span>Bill total</span><span class="money" id="itTotal">$0.00</span></div>
+        <div class="total-line"><span>Bill total</span><span class="money" id="itTotal">0.00</span></div>
       </div>
     </div>
     <div class="formfoot">
       <span class="err" id="expErr"></span>
+      <button type="button" class="ghost" id="expDelete" hidden>Delete</button>
       <button type="button" class="ghost" data-close>Cancel</button>
       <button class="primary" id="expSave">Save</button>
     </div>
@@ -155,16 +200,25 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
 
 <dialog id="groupDlg">
   <form id="groupForm" novalidate>
-    <h2>New group</h2>
-    <label class="field">Group name<input id="gName" placeholder="Austin flat, Tahoe trip…" autocomplete="off"></label>
-    <label class="field">People, one per line. Add a Venmo username after an @ to enable one-tap pay.
-      <textarea id="gMembers" rows="5" placeholder="Ana @ana-r&#10;Ben&#10;Chris @chris-k"
-        style="font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;resize:vertical"></textarea>
-    </label>
+    <h2 id="gTitle">New group</h2>
+    <div class="grid2">
+      <label class="field">Group name<input id="gName" placeholder="Austin flat, Tahoe trip…" autocomplete="off"></label>
+      <label class="field">Group currency<select id="gCur"></select></label>
+    </div>
+    <span id="gCurNote" class="muted" style="font-size:13px" hidden>The group currency is fixed once expenses exist. Add expenses in any currency and Halves converts them.</span>
+    <h3>People</h3>
+    <div>
+      <div class="mrow muted" style="font-size:12px;margin-bottom:4px"><span>Name</span><span>Venmo username (optional)</span><span></span></div>
+      <div id="gMembers"></div>
+      <button type="button" id="gAddMember" class="small ghost">+ Add person</button>
+    </div>
+    <h3>Default split</h3>
+    <span class="muted" style="font-size:13px">New expenses in this group start split this way. Use percentages (60 / 40) or shares (2 / 1). Leave all blank to split equally.</span>
+    <div id="gDefault"></div>
     <div class="formfoot">
       <span class="err" id="gErr"></span>
       <button type="button" class="ghost" data-close>Cancel</button>
-      <button class="primary">Create group</button>
+      <button class="primary" id="gSave">Create group</button>
     </div>
   </form>
 </dialog>
@@ -172,15 +226,22 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
 <script src="splits.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }); // shortcut: USD only, add per-group currency when someone asks
-const money = (c) => fmt.format(c / 100);
+const CURRENCIES = ["USD", "EUR", "GBP", "INR", "CAD", "AUD", "JPY", "MXN", "SGD", "AED", "CHF", "CNY"];
+const CATEGORIES = ["General", "Food & drink", "Groceries", "Rent", "Utilities", "Transport", "Travel", "Lodging", "Entertainment", "Shopping"];
+const fmts = {};
+const money = (c, cur) => (fmts[cur] ||= new Intl.NumberFormat("en-US", { style: "currency", currency: cur })).format(c / 100);
 const toCents = (s) => { const n = parseFloat(String(s).replace(/[^0-9.\-]/g, "")); return isFinite(n) ? Math.round(n * 100) : 0; };
+const fixed = (c) => (c ? (c / 100).toFixed(2) : "");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
 const uid = () => Math.random().toString(36).slice(2, 10);
+const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+const options = (list, sel) => list.map((v) => `<option value="${esc(v)}"${v === sel ? " selected" : ""}>${esc(v)}</option>`).join("");
 
-let groups = [], expenses = [], gid = null, unsubExp = null, store = null, live = false;
+let groups = [], expenses = [], gid = null, unsubExp = null, store = null, downloads = null, sampleApi = null;
 const group = () => groups.find((g) => g.id === gid);
+const cur = () => group()?.currency || "USD";
+const gm = (amount) => money(amount, cur());
 const nameOf = (id) => group()?.members.find((m) => m.id === id)?.name || "Someone";
 
 function showNotice(text, isError) {
@@ -192,21 +253,42 @@ function writeFailed(e) {
                     : "That didn't save. Check your connection and try again.", true);
 }
 
-// ---- Example data (used for preview mode and the "Try an example" button) ----
+// ---- Exchange rates ----
+// shortcut: live rates load only where the page may reach api.frankfurter.app (a standalone host); inside claude.ai the
+// viewer blocks outside requests, so people type the rate and Halves remembers it per currency pair on this device.
+const rateCache = {};
+async function liveRate(from, to) {
+  const key = from + to;
+  if (key in rateCache) return rateCache[key];
+  try {
+    const r = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`);
+    rateCache[key] = r.ok ? (await r.json()).rates?.[to] ?? null : null;
+  } catch { rateCache[key] = null; }
+  return rateCache[key];
+}
+function rememberedRate(from, to) { try { return parseFloat(localStorage.getItem("rate:" + from + to)) || null; } catch { return null; } }
+function rememberRate(from, to, r) { try { localStorage.setItem("rate:" + from + to, String(r)); } catch {} }
+
+// ---- Example data ----
 function exampleGroup() {
   const m = ["Ana", "Ben", "Chris", "Dee"].map((name) => ({ id: uid(), name, venmo: "" }));
-  const [a, b, c, d] = m.map((x) => x.id), all = m.map((x) => x.id), now = Date.now(), H = 36e5;
-  const ex = (desc, amount, paidBy, shares, at, extra) => ({ kind: "expense", desc, amount, paidBy, shares, at, ...extra });
+  const [a, b, c, d] = m.map((x) => x.id), all = m.map((x) => x.id), now = Date.now(), D = 864e5;
+  const eq = (desc, category, amount, paidBy, who, daysAgo) =>
+    ({ kind: "expense", desc, category, amount, paidBy, shares: Splits.equalShares(amount, who), at: now - daysAgo * D,
+       currency: "USD", origAmount: amount, rate: 1, split: { mode: "equal", who } });
   const dinnerItems = [{ name: "Margherita pizza", price: 1800, who: [a, b] }, { name: "Ribeye", price: 3400, who: [c] },
     { name: "Caesar salad", price: 1200, who: [d] }, { name: "Bottle of wine", price: 4200, who: all }];
-  const dinnerShares = Splits.itemizedShares(dinnerItems, 1906);
   return {
-    group: { name: "Tahoe trip (example)", members: m, createdAt: now },
+    group: { name: "Tahoe trip (example)", currency: "USD", members: m, createdAt: now },
     expenses: [
-      ex("Cabin, 3 nights", 64000, a, Splits.equalShares(64000, all), now - 72 * H, { mode: "equal" }),
-      ex("Groceries", 8640, b, Splits.equalShares(8640, all), now - 70 * H, { mode: "equal" }),
-      ex("Dinner at Rosa's", 12506, c, dinnerShares, now - 48 * H, { mode: "items", items: dinnerItems, tax: 856, tip: 1050 }),
-      ex("Gas", 5200, d, Splits.equalShares(5200, [a, d]), now - 20 * H, { mode: "equal" }),
+      eq("Cabin, 3 nights", "Lodging", 64000, a, all, 40),
+      eq("Groceries", "Groceries", 8640, b, all, 39),
+      { kind: "expense", desc: "Dinner at Rosa's", category: "Food & drink", amount: 12506, paidBy: c,
+        shares: Splits.itemizedShares(dinnerItems, 1906), at: now - 38 * D, currency: "USD", origAmount: 12506, rate: 1,
+        split: { mode: "items", items: dinnerItems, tax: 856, tip: 1050 } },
+      eq("Gas", "Transport", 5200, d, [a, d], 37),
+      eq("Ski lift tickets", "Entertainment", 39600, b, all, 8),
+      eq("Brunch", "Food & drink", 9200, a, all, 2),
     ],
   };
 }
@@ -223,7 +305,9 @@ function memoryStore() {
       s.e.push(f); f(); return () => (s.e = s.e.filter((x) => x !== f));
     },
     async addGroup(data) { const id = uid(); s.groups.push({ id, ...data }); emitG(); return id; },
+    async saveGroup(id, data) { s.groups = s.groups.map((g) => (g.id === id ? { id, ...data } : g)); emitG(); },
     async addExpense(data) { s.expenses.push({ id: uid(), ...data }); emitE(); },
+    async saveExpense(id, data) { s.expenses = s.expenses.map((x) => (x.id === id ? { id, ...data } : x)); emitE(); },
     async deleteExpense(id) { s.expenses = s.expenses.filter((x) => x.id !== id); emitE(); },
   };
 }
@@ -234,7 +318,9 @@ function dbStore(db) {
     watchGroups(cb) { db.collection("groups").orderBy("createdAt").onSnapshot((s) => cb(rows(s)), fail); },
     watchExpenses(id, cb) { return db.collection("expenses").where("groupId", "==", id).orderBy("at", "desc").onSnapshot((s) => cb(rows(s)), fail); },
     async addGroup(data) { return (await db.collection("groups").add(data)).id; },
+    async saveGroup(id, data) { await db.doc("groups/" + id).set(data); },
     async addExpense(data) { await db.collection("expenses").add(data); },
+    async saveExpense(id, data) { await db.doc("expenses/" + id).set(data); },
     async deleteExpense(id) { await db.doc("expenses/" + id).delete(); },
   };
 }
@@ -252,6 +338,7 @@ function selectGroup(id) {
   gid = id;
   unsubExp?.();
   expenses = [];
+  $("search").value = ""; $("catFilter").value = "";
   unsubExp = id ? store.watchExpenses(id, (list) => { expenses = list; render(); }) : null;
   render();
 }
@@ -264,9 +351,34 @@ function onGroups(list) {
   else { sel.value = gid; render(); }
 }
 
+function insightsHtml() {
+  const spend = expenses.filter((e) => e.kind === "expense");
+  if (!spend.length) return "";
+  const byCat = {};
+  spend.forEach((e) => (byCat[e.category || "General"] = (byCat[e.category || "General"] || 0) + e.amount));
+  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const catMax = cats[0][1];
+  const now = new Date(), months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ y: d.getFullYear(), m: d.getMonth(), label: d.toLocaleString("en-US", { month: "short" }), total: 0 });
+  }
+  spend.forEach((e) => { const d = new Date(e.at); const mo = months.find((x) => x.y === d.getFullYear() && x.m === d.getMonth()); if (mo) mo.total += e.amount; });
+  const mMax = Math.max(1, ...months.map((x) => x.total));
+  const short = (c) => (c >= 100000 ? Math.round(c / 100000) + "k" : String(Math.round(c / 100)));
+  return `<section class="section"><h2>Spending by category</h2><div class="ledger chart">
+      ${cats.map(([c, v]) => `<div class="hbar"><span class="title">${esc(c)}</span><span class="track"><i style="width:${(v / catMax) * 100}%"></i></span><span class="money">${gm(v)}</span></div>`).join("")}
+    </div></section>
+    <section class="section"><h2>Last 6 months</h2><div class="ledger">
+      <div class="months">${months.map((x) => `<div class="col${x.total ? "" : " zero"}" title="${esc(x.label)}: ${gm(x.total)}"><span class="v">${x.total ? short(x.total) : ""}</span><i style="height:${(x.total / mMax) * 100}%"></i></div>`).join("")}</div>
+      <div class="mlabels">${months.map((x) => `<span>${x.label}</span>`).join("")}</div>
+    </div></section>`;
+}
+
 function render() {
   const g = group();
   $("fab").hidden = !g;
+  $("activitySec").hidden = !g;
   if (!g) {
     $("main").innerHTML = `<div class="empty ledger">
       <h1 style="font-size:24px">Split the bill, not the friendship</h1>
@@ -286,38 +398,55 @@ function render() {
 
   const balRows = g.members.map((m) => {
     const c = net[m.id] || 0, w = (Math.abs(c) / max) * 50;
-    const label = c > 0 ? `gets back <span class="money pos">${money(c)}</span>` : c < 0 ? `owes <span class="money neg">${money(-c)}</span>` : `<span class="muted">settled up</span>`;
+    const label = c > 0 ? `gets back <span class="money pos">${gm(c)}</span>` : c < 0 ? `owes <span class="money neg">${gm(-c)}</span>` : `<span class="muted">settled up</span>`;
     const bar = c ? `<i style="${c > 0 ? `left:50%;width:${w}%;background:var(--pos)` : `right:50%;width:${w}%;background:var(--neg)`}"></i>` : "";
-    return `<div class="row"><div class="grow"><div style="display:flex;justify-content:space-between;gap:8px"><span class="title">${esc(m.name)}</span><span>${label}</span></div><div class="bar">${bar}</div></div></div>`;
+    return `<div class="row"><div class="grow"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="title">${esc(m.name)}</span><span>${label}</span></div><div class="bar">${bar}</div></div></div>`;
   }).join("");
 
   const planRows = plan.length ? plan.map((p, i) => {
     const to = g.members.find((m) => m.id === p.to);
-    const venmo = to?.venmo ? `<a class="linkbtn" target="_blank" rel="noopener"
+    const venmo = to?.venmo && cur() === "USD" ? `<a class="linkbtn" target="_blank" rel="noopener"
       href="https://venmo.com/${encodeURIComponent(to.venmo)}?txn=pay&amount=${(p.amount / 100).toFixed(2)}&note=${encodeURIComponent(g.name)}">Pay on Venmo</a>` : "";
     return `<div class="row"><div class="grow"><div class="title">${esc(nameOf(p.from))} pays ${esc(nameOf(p.to))}</div>
-      <div class="money" style="font-size:17px">${money(p.amount)}</div></div>
+      <div class="money" style="font-size:17px">${gm(p.amount)}</div></div>
       <div class="actions">${venmo}<button class="small" data-act="paid" data-i="${i}">Mark paid</button></div></div>`;
   }).join("") : `<div class="row"><span class="muted">Everyone is square.</span></div>`;
 
-  const actRows = expenses.length ? expenses.map((e) => {
-    const isPay = e.kind === "payment";
-    const to = isPay ? Object.keys(e.shares)[0] : null;
-    const sub = isPay ? `${esc(nameOf(e.paidBy))} paid ${esc(nameOf(to))}` :
-      `${esc(nameOf(e.paidBy))} paid · split ${Object.keys(e.shares).length} ways${e.mode === "items" ? " by item" : ""}`;
-    return `<div class="row"><span class="date">${day.format(new Date(e.at))}</span>
-      <div class="grow"><div class="title">${isPay ? `<span class="tag">Payment</span> ` : ""}${esc(e.desc)}</div><div class="sub">${sub}</div></div>
-      <span class="money">${money(e.amount)}</span>
-      <button class="small ghost" data-act="del" data-id="${esc(e.id)}" aria-label="Delete ${esc(e.desc)}">✕</button></div>`;
-  }).join("") : `<div class="row"><span class="muted">No expenses yet. Tap “Add expense” to log the first one.</span></div>`;
-
   $("main").innerHTML = `
     <div class="hero"><h1>${esc(g.name)}</h1>
-      <div class="muted">${g.members.length} people · <span class="money">${money(spent)}</span> spent</div></div>
+      <div class="muted">${g.members.length} people · <span class="money">${gm(spent)}</span> spent · ${esc(cur())}</div>
+      <div class="tools"><button class="small" data-act="settings">Group settings</button>
+        ${downloads ? `<button class="small" data-act="export">Export CSV</button>` : ""}</div></div>
     <section class="section"><h2>Balances</h2><div class="ledger">${balRows}</div></section>
     <section class="section"><h2>Settle up</h2><div class="ledger">${planRows}</div></section>
-    <section class="section"><h2>Activity</h2><div class="ledger">${actRows}</div></section>`;
+    ${insightsHtml()}`;
+  renderActivity();
 }
+
+function renderActivity() {
+  const q = $("search").value.trim().toLowerCase(), cat = $("catFilter").value;
+  const list = expenses.filter((e) => {
+    if (cat && (e.kind === "payment" ? "Payment" : e.category || "General") !== cat) return false;
+    if (!q) return true;
+    const hay = [e.desc, e.category, nameOf(e.paidBy), ...Object.keys(e.shares).map(nameOf), (e.amount / 100).toFixed(2)].join(" ").toLowerCase();
+    return hay.includes(q);
+  });
+  $("activity").innerHTML = list.length ? list.map((e) => {
+    const isPay = e.kind === "payment";
+    const to = isPay ? Object.keys(e.shares)[0] : null;
+    const foreign = !isPay && e.currency && e.currency !== cur() ? ` · ${money(e.origAmount, e.currency)}` : "";
+    const sub = isPay ? `${esc(nameOf(e.paidBy))} paid ${esc(nameOf(to))}` :
+      `${esc(nameOf(e.paidBy))} paid · ${esc(e.category || "General")}${foreign}`;
+    return `<div class="row${isPay ? "" : " click"}" ${isPay ? "" : `data-act="edit" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="Edit ${esc(e.desc)}"`}>
+      <span class="date">${day.format(new Date(e.at))}</span>
+      <div class="grow"><div class="title">${isPay ? `<span class="tag">Payment</span> ` : ""}${esc(e.desc)}</div><div class="sub">${sub}</div></div>
+      <span class="money">${gm(e.amount)}</span>
+      ${isPay ? `<button class="small ghost" data-act="del" data-id="${esc(e.id)}" aria-label="Delete payment">✕</button>` : ""}</div>`;
+  }).join("") : `<div class="row"><span class="muted">${expenses.length ? "Nothing matches that search." : "No expenses yet. Tap “Add expense” to log the first one."}</span></div>`;
+}
+$("search").addEventListener("input", renderActivity);
+$("catFilter").addEventListener("change", renderActivity);
+$("catFilter").innerHTML = `<option value="">All</option>` + options([...CATEGORIES, "Payment"]);
 
 // Two-tap confirm instead of confirm(), which the viewer blocks.
 function armed(btn, label) {
@@ -332,62 +461,156 @@ document.addEventListener("click", async (ev) => {
   if (!t) return;
   if (t.hasAttribute("data-close")) return t.closest("dialog").close();
   const act = t.dataset.act;
-  if (act === "new-group") openGroupDlg();
+  if (act === "new-group") openGroupDlg(null);
+  if (act === "settings") openGroupDlg(group());
   if (act === "example") addExample();
+  if (act === "edit") openExpDlg(expenses.find((e) => e.id === t.dataset.id));
+  if (act === "export") exportCsv();
   if (act === "del" && armed(t, "Delete?")) {
     try { await store.deleteExpense(t.dataset.id); } catch (e) { writeFailed(e); }
   }
   if (act === "paid" && armed(t, "Confirm")) {
-    const g = group(), net = Splits.balances(expenses, g.members.map((m) => m.id));
-    const p = Splits.settle(net)[+t.dataset.i];
+    const g = group(), p = Splits.settle(Splits.balances(expenses, g.members.map((m) => m.id)))[+t.dataset.i];
     if (p) try {
       await store.addExpense({ groupId: g.id, kind: "payment", desc: "Settled up", amount: p.amount, paidBy: p.from, shares: { [p.to]: p.amount }, at: Date.now() });
     } catch (e) { writeFailed(e); }
   }
 });
+document.addEventListener("keydown", (ev) => {
+  if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches?.(".row.click")) { ev.preventDefault(); ev.target.click(); }
+});
 $("groupSel").addEventListener("change", (e) => selectGroup(e.target.value));
-$("newGroupBtn").addEventListener("click", () => openGroupDlg());
+$("newGroupBtn").addEventListener("click", () => openGroupDlg(null));
 
-// ---- New group ----
-function openGroupDlg() { $("gName").value = ""; $("gMembers").value = ""; $("gErr").textContent = ""; $("groupDlg").showModal(); }
+async function exportCsv() {
+  const g = group();
+  try {
+    await downloads.save({ filename: `${g.name.replace(/[^\w\- ]+/g, "").trim() || "halves"}.csv`,
+      data: Splits.toCSV(expenses.slice().reverse(), g.members, cur()) });
+  } catch (e) { if (e?.code !== "declined") showNotice("Couldn't export right now. Try again in a moment.", true); }
+}
+
+// ---- Group create + settings ----
+let editingGroup = null, draftMembers = [];
+function openGroupDlg(g) {
+  editingGroup = g;
+  const used = new Set(expenses.flatMap((e) => [e.paidBy, ...Object.keys(e.shares)]));
+  draftMembers = g ? g.members.map((m) => ({ ...m, locked: used.has(m.id) })) : [{ id: uid(), name: "", venmo: "" }, { id: uid(), name: "", venmo: "" }];
+  $("gTitle").textContent = g ? "Group settings" : "New group";
+  $("gSave").textContent = g ? "Save changes" : "Create group";
+  $("gName").value = g?.name || "";
+  $("gCur").innerHTML = options(CURRENCIES, g?.currency || "USD");
+  const fixedCur = !!g && expenses.some((e) => e.kind === "expense");
+  $("gCur").disabled = fixedCur; $("gCurNote").hidden = !fixedCur;
+  $("gErr").textContent = "";
+  renderMembers();
+  $("groupDlg").showModal();
+}
+function renderMembers() {
+  const def = editingGroup?.defaultSplit || {};
+  $("gMembers").innerHTML = draftMembers.map((m, i) => `<div class="mrow">
+      <input value="${esc(m.name)}" placeholder="Name" data-mname="${i}" aria-label="Person ${i + 1} name">
+      <input value="${esc(m.venmo)}" placeholder="@username" data-mvenmo="${i}" aria-label="Person ${i + 1} Venmo">
+      <button type="button" class="small ghost" data-mrm="${i}" ${m.locked ? `disabled title="Has expenses in this group"` : ""} aria-label="Remove person ${i + 1}">✕</button></div>`).join("");
+  const prev = Object.fromEntries([...document.querySelectorAll("[data-gdef]")].map((x) => [x.dataset.gdef, x.value]));
+  $("gDefault").innerHTML = draftMembers.map((m) => `<div class="prow"><span>${esc(m.name || "New person")}</span>
+      <input class="num" inputmode="decimal" placeholder="—" data-gdef="${esc(m.id)}" value="${esc(prev[m.id] ?? def[m.id] ?? "")}" aria-label="${esc(m.name)} default share"></div>`).join("");
+}
+$("gMembers").addEventListener("input", (ev) => {
+  const t = ev.target;
+  if (t.dataset.mname != null) { draftMembers[+t.dataset.mname].name = t.value; const s = $("gDefault").querySelectorAll(".prow span")[+t.dataset.mname]; if (s) s.textContent = t.value || "New person"; }
+  if (t.dataset.mvenmo != null) draftMembers[+t.dataset.mvenmo].venmo = t.value;
+});
+$("gMembers").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-mrm]");
+  if (b && !b.disabled) { draftMembers.splice(+b.dataset.mrm, 1); renderMembers(); }
+});
+$("gAddMember").addEventListener("click", () => { draftMembers.push({ id: uid(), name: "", venmo: "" }); renderMembers(); });
 $("groupForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  const err = (m) => ($("gErr").textContent = m);
   const name = $("gName").value.trim();
-  const members = $("gMembers").value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
-    const [n, v] = l.split("@");
-    return { id: uid(), name: n.trim() || v.trim(), venmo: (v || "").trim().replace(/\s+/g, "") };
-  });
-  if (!name) return ($("gErr").textContent = "Give the group a name.");
-  if (members.length < 2) return ($("gErr").textContent = "Add at least two people.");
-  try { const id = await store.addGroup({ name, members, createdAt: Date.now() }); $("groupDlg").close(); selectGroup(id); }
-  catch (e) { writeFailed(e); $("groupDlg").close(); }
+  const members = draftMembers.map((m) => ({ id: m.id, name: m.name.trim(), venmo: m.venmo.replace(/[@\s]/g, "") })).filter((m) => m.name);
+  if (!name) return err("Give the group a name.");
+  if (members.length < 2) return err("Add at least two people.");
+  const lost = draftMembers.find((m) => m.locked && !m.name.trim());
+  if (lost) return err("People with expenses need a name.");
+  const defaultSplit = {};
+  document.querySelectorAll("[data-gdef]").forEach((x) => { const v = parseFloat(x.value); if (v > 0 && members.some((m) => m.id === x.dataset.gdef)) defaultSplit[x.dataset.gdef] = v; });
+  const data = { name, currency: $("gCur").value, members, createdAt: editingGroup?.createdAt || Date.now() };
+  if (Object.keys(defaultSplit).length) data.defaultSplit = defaultSplit;
+  try {
+    if (editingGroup) await store.saveGroup(editingGroup.id, data);
+    else selectGroup(await store.addGroup(data));
+    $("groupDlg").close();
+  } catch (e) { writeFailed(e); $("groupDlg").close(); }
 });
 
-// ---- Add expense ----
-let items = [], sampleApi = null;
+// ---- Add / edit expense ----
+let items = [], editing = null;
 const mode = () => document.querySelector('input[name="mode"]:checked').value;
+const setMode = (m) => (document.querySelector(`input[name="mode"][value="${m}"]`).checked = true);
+const allIds = () => group().members.map((m) => m.id);
 function chipsHtml(selected, attrs) {
   return group().members.map((m) => `<button type="button" class="chip" ${attrs} data-m="${esc(m.id)}" aria-pressed="${selected.includes(m.id)}">${esc(m.name)}</button>`).join("");
 }
-function openExpDlg() {
-  const g = group(), all = g.members.map((m) => m.id);
+function openExpDlg(e) {
+  editing = e || null;
+  const g = group(), all = allIds(), split = e?.split || legacySplit(e);
   $("expForm").reset(); $("expErr").textContent = ""; $("scanStatus").textContent = "Snap the bill and Claude lists the items.";
+  $("expTitle").textContent = e ? "Edit expense" : "Add expense";
+  $("expDelete").hidden = !e;
   $("expPayer").innerHTML = g.members.map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");
-  $("paneEqual").innerHTML = chipsHtml(all, 'data-pane="equal"');
-  $("paneExact").innerHTML = g.members.map((m) => `<div class="exact-row" style="margin-bottom:8px"><span>${esc(m.name)}</span><input inputmode="decimal" placeholder="0.00" data-exact="${esc(m.id)}" aria-label="${esc(m.name)} owes"></div>`).join("")
+  $("expCur").innerHTML = options(CURRENCIES, e?.currency || cur());
+  $("expCat").innerHTML = options(CATEGORIES, e?.category || "General");
+  $("expDate").value = new Date((e?.at || Date.now()) - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+  $("expRate").value = e?.currency && e.currency !== cur() ? e.rate : "";
+  if (e) { $("expDesc").value = e.desc; $("expPayer").value = e.paidBy; $("expAmt").value = fixed(e.origAmount ?? e.amount); }
+  const def = g.defaultSplit;
+  const m = e ? split.mode : def ? "shares" : "equal";
+  $("paneEqual").innerHTML = chipsHtml(m === "equal" && e ? split.who : all, 'data-pane="equal"');
+  const exact = m === "exact" ? split.exact : {};
+  $("paneExact").innerHTML = g.members.map((x) => `<div class="prow"><span>${esc(x.name)}</span><input class="num" inputmode="decimal" placeholder="0.00" data-exact="${esc(x.id)}" value="${fixed(exact[x.id] || 0)}" aria-label="${esc(x.name)} owes"></div>`).join("")
     + `<div class="muted" id="exactLeft" style="font-size:13px"></div>`;
-  items = [{ name: "", price: 0, who: all.slice() }];
-  renderItems(); syncMode();
-  $("expDlg").showModal(); $("expDesc").focus();
+  const weights = m === "shares" ? (e ? split.weights : def) : def || {};
+  $("paneShares").innerHTML = g.members.map((x) => `<div class="prow"><span>${esc(x.name)}</span><input class="num" inputmode="decimal" placeholder="0" data-weight="${esc(x.id)}" value="${esc(weights[x.id] ?? "")}" aria-label="${esc(x.name)} share"><span class="calc money" data-wcalc="${esc(x.id)}"></span></div>`).join("")
+    + `<label class="check"><input type="checkbox" id="saveDefault"> Save as this group's default split</label>`;
+  items = m === "items" ? split.items.map((it) => ({ ...it, who: it.who.slice() })) : [{ name: "", price: 0, who: all.slice() }];
+  $("itTax").value = m === "items" ? fixed(split.tax) : ""; $("itTip").value = m === "items" ? fixed(split.tip) : "";
+  setMode(m);
+  renderItems(); syncMode(); syncRate();
+  $("expDlg").showModal();
+  if (!e) $("expDesc").focus();
+}
+function legacySplit(e) { // expenses saved before `split` existed
+  if (!e) return {};
+  if (e.mode === "items") return { mode: "items", items: e.items, tax: e.tax || 0, tip: e.tip || 0 };
+  return { mode: "exact", exact: e.shares };
 }
 function syncMode() {
   const m = mode();
-  $("paneEqual").hidden = m !== "equal"; $("paneExact").hidden = m !== "exact"; $("paneItems").hidden = m !== "items";
+  ["Equal", "Exact", "Shares", "Items"].forEach((p) => ($("pane" + p).hidden = m !== p.toLowerCase()));
   $("expAmt").readOnly = m === "items";
-  if (m === "items") itemsTotal(); else exactLeft();
+  if (m === "items") itemsTotal(); else { exactLeft(); sharesCalc(); }
 }
 document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", syncMode));
-$("fab").addEventListener("click", openExpDlg);
+$("fab").addEventListener("click", () => openExpDlg(null));
+
+async function syncRate() {
+  const from = $("expCur").value, to = cur(), box = $("rateBox");
+  box.hidden = from === to;
+  if (from === to) return;
+  $("rateFrom").textContent = `1 ${from} =`; $("rateTo").textContent = to;
+  if ($("expRate").value) { $("rateNote").textContent = ""; return; }
+  const remembered = rememberedRate(from, to);
+  if (remembered) { $("expRate").value = remembered; $("rateNote").textContent = "last rate you used"; }
+  $("rateNote").textContent = remembered ? "last rate you used · checking live rate…" : "checking live rate…";
+  const live = await liveRate(from, to);
+  if ($("expCur").value !== from) return;
+  if (live) { $("expRate").value = live; $("rateNote").textContent = "today's rate"; }
+  else $("rateNote").textContent = remembered ? "last rate you used" : "enter today's rate";
+}
+$("expCur").addEventListener("change", () => { $("expRate").value = ""; syncRate(); sharesCalc(); });
 
 $("expDlg").addEventListener("click", (ev) => {
   const chip = ev.target.closest(".chip");
@@ -402,21 +625,30 @@ $("expDlg").addEventListener("click", (ev) => {
 function renderItems() {
   $("items").innerHTML = items.map((it, i) => `<div class="item">
       <div class="line"><input value="${esc(it.name)}" placeholder="Item" data-iname="${i}" aria-label="Item name">
-        <input class="price" inputmode="decimal" value="${it.price ? (it.price / 100).toFixed(2) : ""}" placeholder="0.00" data-iprice="${i}" aria-label="Price">
+        <input class="price num" inputmode="decimal" value="${fixed(it.price)}" placeholder="0.00" data-iprice="${i}" aria-label="Price">
         <button type="button" class="small ghost" data-irm="${i}" aria-label="Remove item">✕</button></div>
       <div class="chips">${chipsHtml(it.who, `data-item="${i}"`)}</div></div>`).join("");
   itemsTotal();
 }
 function itemsTotal() {
   const t = items.reduce((a, it) => a + it.price, 0) + toCents($("itTax").value) + toCents($("itTip").value);
-  $("itTotal").textContent = money(t);
-  if (mode() === "items") $("expAmt").value = t ? (t / 100).toFixed(2) : "";
+  $("itTotal").textContent = money(t, $("expCur").value);
+  if (mode() === "items") $("expAmt").value = fixed(t);
   return t;
 }
 function exactLeft() {
-  const sum = [...document.querySelectorAll("[data-exact]")].reduce((a, i) => a + toCents(i.value), 0);
-  const left = toCents($("expAmt").value) - sum, el = $("exactLeft");
-  if (el) el.textContent = left === 0 ? "All assigned." : left > 0 ? `${money(left)} still to assign` : `${money(-left)} over the total`;
+  const s = [...document.querySelectorAll("[data-exact]")].reduce((a, i) => a + toCents(i.value), 0);
+  const left = toCents($("expAmt").value) - s, el = $("exactLeft"), c = $("expCur").value;
+  if (el) el.textContent = left === 0 ? "All assigned." : left > 0 ? `${money(left, c)} still to assign` : `${money(-left, c)} over the total`;
+}
+function readWeights() {
+  const w = {};
+  document.querySelectorAll("[data-weight]").forEach((x) => { const v = parseFloat(x.value); if (v > 0) w[x.dataset.weight] = v; });
+  return w;
+}
+function sharesCalc() {
+  const parts = Splits.weightedShares(toCents($("expAmt").value), readWeights()), c = $("expCur").value;
+  document.querySelectorAll("[data-wcalc]").forEach((x) => (x.textContent = parts[x.dataset.wcalc] ? money(parts[x.dataset.wcalc], c) : ""));
 }
 $("expDlg").addEventListener("input", (ev) => {
   const t = ev.target;
@@ -424,12 +656,14 @@ $("expDlg").addEventListener("input", (ev) => {
   if (t.dataset.iprice != null) { items[+t.dataset.iprice].price = Math.max(0, toCents(t.value)); itemsTotal(); }
   if (t.id === "itTax" || t.id === "itTip") itemsTotal();
   if (t.dataset.exact != null || t.id === "expAmt") exactLeft();
+  if (t.dataset.weight != null || t.id === "expAmt") sharesCalc();
+  if (t.id === "expRate") $("rateNote").textContent = "";
 });
 $("items").addEventListener("click", (ev) => {
   const rm = ev.target.closest("[data-irm]");
   if (rm) { items.splice(+rm.dataset.irm, 1); renderItems(); }
 });
-$("addItem").addEventListener("click", () => { items.push({ name: "", price: 0, who: group().members.map((m) => m.id) }); renderItems(); });
+$("addItem").addEventListener("click", () => { items.push({ name: "", price: 0, who: allIds() }); renderItems(); });
 
 $("scanFile").addEventListener("change", async (ev) => {
   const file = ev.target.files[0]; ev.target.value = "";
@@ -437,16 +671,19 @@ $("scanFile").addEventListener("change", async (ev) => {
   const status = $("scanStatus"); status.textContent = "Reading the receipt…";
   try {
     const r = await sampleApi.json(
-      'This image is a restaurant or store receipt. Return JSON only, shaped {"merchant": string, "items": [{"name": string, "price": number}], "tax": number, "tip": number}. ' +
-      "price is the line total in US dollars, including quantity, with any discount already subtracted. Leave subtotal, tax, tip and total lines out of items. Use 0 for tax or tip when the receipt has none.",
+      'This image is a restaurant or store receipt. Return JSON only, shaped {"merchant": string, "currency": string, "category": string, "items": [{"name": string, "price": number}], "tax": number, "tip": number}. ' +
+      "price is the line total in the receipt's currency, including quantity, with any discount already subtracted. Leave subtotal, tax, tip and total lines out of items. Use 0 for tax or tip when the receipt has none. " +
+      `currency is the ISO code printed or implied on the receipt, one of ${CURRENCIES.join(", ")}, or "" if unclear. category is one of: ${CATEGORIES.join(", ")}.`,
       { images: [file] });
-    const all = group().members.map((m) => m.id);
+    const all = allIds();
     const got = (Array.isArray(r?.items) ? r.items : []).map((x) => ({ name: String(x.name || "Item").slice(0, 80), price: Math.max(0, toCents(x.price)), who: all.slice() })).filter((x) => x.price);
     if (!got.length) { status.textContent = "Couldn't find any items on that photo. Try a sharper, straight-on shot."; return; }
     items = got;
     $("itTax").value = r.tax > 0 ? (+r.tax).toFixed(2) : "";
     $("itTip").value = r.tip > 0 ? (+r.tip).toFixed(2) : "";
     if (!$("expDesc").value && r.merchant) $("expDesc").value = String(r.merchant).slice(0, 80);
+    if (CATEGORIES.includes(r.category)) $("expCat").value = r.category;
+    if (CURRENCIES.includes(r.currency) && r.currency !== $("expCur").value) { $("expCur").value = r.currency; $("expRate").value = ""; syncRate(); }
     renderItems();
     status.textContent = `Found ${got.length} items. Tap names under each item to set who had it.`;
   } catch (e) {
@@ -456,49 +693,75 @@ $("scanFile").addEventListener("change", async (ev) => {
   }
 });
 
+$("expDelete").addEventListener("click", async (ev) => {
+  if (!editing || !armed(ev.currentTarget, "Tap again to delete")) return;
+  try { await store.deleteExpense(editing.id); } catch (e) { writeFailed(e); }
+  $("expDlg").close();
+});
+
 $("expForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const err = (m) => ($("expErr").textContent = m);
   const g = group(), desc = $("expDesc").value.trim(), paidBy = $("expPayer").value, m = mode();
-  let amount = toCents($("expAmt").value), shares, extra = { mode: m };
+  const currency = $("expCur").value, foreign = currency !== cur();
+  const rate = foreign ? parseFloat($("expRate").value) : 1;
+  let orig = toCents($("expAmt").value), shares, split;
   if (!desc) return err("Say what it was for.");
+  if (foreign && !(rate > 0)) return err(`Enter how many ${cur()} one ${currency} is worth.`);
   if (m === "equal") {
     const who = [...document.querySelectorAll('[data-pane="equal"][aria-pressed="true"]')].map((c) => c.dataset.m);
     if (!who.length) return err("Pick at least one person to split with.");
-    if (amount <= 0) return err("Enter an amount above $0.");
-    shares = Splits.equalShares(amount, who);
+    if (orig <= 0) return err("Enter an amount above zero.");
+    shares = Splits.equalShares(orig, who); split = { mode: m, who };
   } else if (m === "exact") {
-    if (amount <= 0) return err("Enter an amount above $0.");
+    if (orig <= 0) return err("Enter an amount above zero.");
     shares = {};
     document.querySelectorAll("[data-exact]").forEach((i) => { const c = toCents(i.value); if (c > 0) shares[i.dataset.exact] = c; });
-    const sum = Object.values(shares).reduce((a, b) => a + b, 0);
-    if (sum !== amount) return err(`Amounts add up to ${money(sum)}, not ${money(amount)}.`);
+    if (sum(shares) !== orig) return err(`Amounts add up to ${money(sum(shares), currency)}, not ${money(orig, currency)}.`);
+    split = { mode: m, exact: shares };
+  } else if (m === "shares") {
+    const weights = readWeights();
+    if (orig <= 0) return err("Enter an amount above zero.");
+    if (!Object.keys(weights).length) return err("Give at least one person a share.");
+    shares = Splits.weightedShares(orig, weights); split = { mode: m, weights };
   } else {
     const priced = items.filter((it) => it.price > 0);
     if (!priced.length) return err("Add at least one item with a price.");
     if (priced.some((it) => !it.who.length)) return err("Every item needs at least one person.");
     const tax = toCents($("itTax").value), tip = toCents($("itTip").value);
-    amount = itemsTotal();
-    shares = Splits.itemizedShares(priced, tax + tip);
-    extra = { mode: m, items: priced, tax, tip };
+    orig = itemsTotal();
+    shares = Splits.itemizedShares(priced, tax + tip); split = { mode: m, items: priced, tax, tip };
   }
+  let amount = orig;
+  if (foreign) { ({ total: amount, shares } = Splits.convert(shares, rate)); rememberRate(currency, cur(), rate); }
+  const [y, mo, d] = $("expDate").value.split("-").map(Number);
+  const keepTime = editing && new Date(editing.at).toDateString() === new Date(y, mo - 1, d).toDateString();
+  const at = keepTime ? editing.at : y ? new Date(y, mo - 1, d, 12).getTime() : Date.now();
+  const data = { groupId: g.id, kind: "expense", desc, category: $("expCat").value, amount, paidBy, shares, at, currency, origAmount: orig, rate, split };
   $("expSave").disabled = true;
-  try { await store.addExpense({ groupId: g.id, kind: "expense", desc, amount, paidBy, shares, at: Date.now(), ...extra }); $("expDlg").close(); }
-  catch (e) { writeFailed(e); $("expDlg").close(); }
+  try {
+    if (editing) await store.saveExpense(editing.id, data); else await store.addExpense(data);
+    if (m === "shares" && $("saveDefault").checked) await store.saveGroup(g.id, { ...stripId(g), defaultSplit: split.weights });
+    $("expDlg").close();
+  } catch (e) { writeFailed(e); $("expDlg").close(); }
   finally { $("expSave").disabled = false; }
 });
+const stripId = ({ id, ...rest }) => rest;
 
 // ---- Boot ----
 (async () => {
   const db = window.claude ? await claude.use("db").catch(() => null) : null;
-  if (db) { store = dbStore(db); live = true; }
+  if (db) store = dbStore(db);
   else {
     store = memoryStore();
     showNotice("Preview mode with an example trip. Open this page signed in to claude.ai to save groups and share them.");
     await addExample();
   }
   store.watchGroups(onGroups);
-  const sample = window.claude ? await claude.use("sample").catch(() => null) : null;
-  if (sample && (await sample.limits().catch(() => null))?.images) { sampleApi = sample; $("scanRow").hidden = false; }
+  if (window.claude) {
+    const [sample, dl] = await Promise.all([claude.use("sample").catch(() => null), claude.use("downloads").catch(() => null)]);
+    if (dl) { downloads = dl; render(); }
+    if (sample && (await sample.limits().catch(() => null))?.images) { sampleApi = sample; $("scanRow").hidden = false; }
+  }
 })();
 </script>
