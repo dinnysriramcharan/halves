@@ -1,0 +1,13 @@
+const S = require('../splits.js'), assert = require('assert');
+const sum = o => Object.values(o).reduce((a,b)=>a+b,0);
+assert.deepStrictEqual(S.allocate(100,[1,1,1]), [34,33,33]);
+assert.strictEqual(sum(S.equalShares(1001,['a','b','c'])), 1001);
+const it = S.itemizedShares([{price:1200,who:['a']},{price:900,who:['a','b','c']},{price:600,who:['b']}], 541);
+assert.strictEqual(sum(it), 1200+900+600+541);
+const exp = [{paidBy:'a',amount:3000,shares:S.equalShares(3000,['a','b','c'])},{paidBy:'b',amount:1500,shares:{a:500,b:500,c:500}}];
+const net = S.balances(exp,['a','b','c']);
+assert.strictEqual(sum(net), 0);
+const t = S.settle(net);
+const after = {...net}; t.forEach(x=>{after[x.from]+=x.amount; after[x.to]-=x.amount});
+assert.ok(Object.values(after).every(v=>v===0));
+console.log('ok', net, t);
