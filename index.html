@@ -104,6 +104,7 @@ svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-wid
 /* Charts */
 .chart { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .hbar { display: grid; grid-template-columns: 22px minmax(0, 7em) 1fr auto; gap: 10px; align-items: center; font-size: 13px; }
+.hbar .av { width: 22px; height: 22px; font-size: 11px; border-radius: 6px; }
 .hbar .track { height: 10px; border-radius: 5px; background: var(--raised); overflow: hidden; }
 .hbar .track i { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
 .months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: end; height: 140px; padding: 14px 14px 0; }
@@ -214,6 +215,7 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
 <div class="tabbar"><nav id="tabs" aria-label="Sections">
   <button data-tab="home"><svg class="ic" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>Home</button>
   <button data-tab="groups"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg>Groups</button>
+  <button data-tab="insights"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10 M10 20V4 M16 20v-7 M22 20H2"/></svg>Insights</button>
   <button data-tab="friends"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/></svg>Friends</button>
   <button data-tab="activity"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Activity</button>
 </nav></div>
@@ -489,7 +491,7 @@ function render() {
   document.querySelectorAll("#tabs button").forEach((b) => (b.dataset.tab === active ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
   $("fab").hidden = !groups.length;
   $("main").dataset.view = tab === "group" ? "group" : "list";
-  const views = { home: viewHome, groups: viewGroups, friends: viewFriends, activity: viewActivity, group: viewGroup };
+  const views = { home: viewHome, insights: viewInsights, groups: viewGroups, friends: viewFriends, activity: viewActivity, group: viewGroup };
   views[tab]();
   renderSide(active);
   if (s && $("search")) { $("search").value = s.v; $("search").focus(); $("search").setSelectionRange(s.p, s.p); }
@@ -501,7 +503,7 @@ const brand = (page) => `<div class="title"><span class="m-only">Halves<span cla
 // Wide-screen sidebar: the same three sections as the phone tab bar, plus your groups.
 function renderSide(active) {
   const navIcon = (t) => document.querySelector(`#tabs [data-tab="${t}"] svg`).outerHTML;
-  const nav = [["home", "Home"], ["groups", "Groups"], ["friends", "Friends"], ["activity", "Activity"]].map(([t, l]) =>
+  const nav = [["home", "Home"], ["groups", "Groups"], ["insights", "Insights"], ["friends", "Friends"], ["activity", "Activity"]].map(([t, l]) =>
     `<button data-act="tab" data-tab="${t}"${active === t && tab !== "group" ? ' aria-current="page"' : ""}>${navIcon(t)}${l}</button>`).join("");
   const list = groups.map((g) => {
     const me = meOf(g), c = me ? netFor(g)[me] : 0;
@@ -731,24 +733,121 @@ function groupBalances(g, me, net) {
     <section class="section"><h2>Balances</h2><div class="ledger">${balRows}</div></section>`;
 }
 
-function groupCharts() {
-  const spend = gx().filter((e) => e.kind === "expense");
-  if (!spend.length) return `<div class="empty ledger"><p>Charts appear once the group has expenses.</p></div>`;
-  const byCat = {};
-  spend.forEach((e) => (byCat[e.category || "General"] = (byCat[e.category || "General"] || 0) + e.amount));
-  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]), catMax = cats[0][1];
+// Charts shared by a group's Charts pane and the Insights page. items: [{at, v, cat}] in one currency.
+function catBars(items, c) {
+  const by = {};
+  items.forEach((x) => (by[x.cat] = (by[x.cat] || 0) + x.v));
+  const rows = Object.entries(by).sort((a, b) => b[1] - a[1]), max = rows[0]?.[1] || 1;
+  return rows.map(([k, v]) => `<div class="hbar"><span class="muted">${icon(k)}</span><span>${esc(k)}</span><span class="track"><i style="width:${(v / max) * 100}%"></i></span><span class="money">${money(v, c)}</span></div>`).join("");
+}
+function monthTotals(items) {
   const now = new Date(), months = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push({ y: d.getFullYear(), m: d.getMonth(), label: mon.format(d), total: 0 }); }
-  spend.forEach((e) => { const d = new Date(e.at); const mo = months.find((x) => x.y === d.getFullYear() && x.m === d.getMonth()); if (mo) mo.total += e.amount; });
-  const mMax = Math.max(1, ...months.map((x) => x.total));
-  const short = (c) => (c >= 100000 ? Math.round(c / 100000) + "k" : String(Math.round(c / 100)));
-  return `<section class="section"><h2>Spending by category</h2><div class="ledger chart">
-      ${cats.map(([c, v]) => `<div class="hbar"><span class="muted">${icon(c)}</span><span>${esc(c)}</span><span class="track"><i style="width:${(v / catMax) * 100}%"></i></span><span class="money">${gm(v)}</span></div>`).join("")}
-    </div></section>
-    <section class="section"><h2>Last 6 months</h2><div class="ledger">
-      <div class="months">${months.map((x) => `<div class="col${x.total ? "" : " zero"}" title="${esc(x.label)}: ${gm(x.total)}"><span class="v">${x.total ? short(x.total) : ""}</span><i style="height:${(x.total / mMax) * 100}%"></i></div>`).join("")}</div>
-      <div class="mlabels">${months.map((x) => `<span>${x.label}</span>`).join("")}</div>
-    </div></section>`;
+  items.forEach((x) => { const d = new Date(x.at); const mo = months.find((m) => m.y === d.getFullYear() && m.m === d.getMonth()); if (mo) mo.total += x.v; });
+  return months;
+}
+function monthBars(items, c) {
+  const months = monthTotals(items), max = Math.max(1, ...months.map((x) => x.total));
+  const short = (v) => (v >= 100000 ? Math.round(v / 100000) + "k" : String(Math.round(v / 100)));
+  return `<div class="months">${months.map((x) => `<div class="col${x.total ? "" : " zero"}" title="${esc(x.label)}: ${money(x.total, c)}"><span class="v">${x.total ? short(x.total) : ""}</span><i style="height:${(x.total / max) * 100}%"></i></div>`).join("")}</div>
+    <div class="mlabels">${months.map((x) => `<span>${x.label}</span>`).join("")}</div>`;
+}
+
+function groupCharts() {
+  const items = gx().filter((e) => e.kind === "expense").map((e) => ({ at: e.at, v: e.amount, cat: e.category || "General" }));
+  if (!items.length) return `<div class="empty ledger"><p>Charts appear once the group has expenses.</p></div>`;
+  return `<section class="section"><h2>Spending by category</h2><div class="ledger chart">${catBars(items, cur())}</div></section>
+    <section class="section"><h2>Last 6 months</h2><div class="ledger">${monthBars(items, cur())}</div></section>`;
+}
+
+// ---- Insights: your own share of spending across every group where you've picked your name ----
+const PERIODS = { month: "This month", "90": "Last 3 months", all: "All time" };
+let period = "month", aiNote = { key: "", lines: null, busy: false, err: "" };
+function myItems(c) {
+  const out = [];
+  for (const g of groups) {
+    const me = meOf(g); if (!me || cur(g) !== c) continue;
+    for (const e of gx(g.id)) if (e.kind === "expense" && e.shares[me] > 0) out.push({ e, g, at: e.at, v: e.shares[me], cat: e.category || "General" });
+  }
+  return out;
+}
+function viewInsights() {
+  header(`${brand("Insights")}${themeBtn("m-only")}`);
+  const curs = [...new Set(groups.filter(meOf).map((g) => cur(g)))];
+  if (!curs.length) {
+    $("main").innerHTML = groups.length
+      ? `<div class="empty ledger"><h1 style="font-size:22px">Pick your name first</h1><p>Open a group and tap which person is you. Insights then show your own share of spending.</p>
+         <div class="chips" style="justify-content:center">${groups.map((g) => `<button class="chip" data-act="open-group" data-id="${esc(g.id)}">${esc(g.name)}</button>`).join("")}</div></div>`
+      : emptyHtml;
+    return;
+  }
+  if (!curs.includes(homeCur)) homeCur = curs[0];
+  const c = homeCur, allMine = myItems(c), now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime(), lastStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+  const since = { month: monthStart, "90": Date.now() - 90 * 864e5, all: 0 }[period];
+  const items = allMine.filter((x) => x.at >= since);
+  const total = (xs) => xs.reduce((a, x) => a + x.v, 0);
+  const thisM = total(allMine.filter((x) => x.at >= monthStart)), lastM = total(allMine.filter((x) => x.at >= lastStart && x.at < monthStart));
+  const delta = lastM ? Math.round(((thisM - lastM) / lastM) * 100) : null;
+  const lastName = new Date(lastStart).toLocaleString("en-US", { month: "long" });
+  const trend = delta == null ? `Nothing in ${lastName} to compare with.` : delta === 0 ? `Same as ${lastName}.`
+    : `<span class="${delta > 0 ? "neg" : "pos"}">${delta > 0 ? "Up" : "Down"} ${Math.abs(delta)}%</span> from ${lastName} (${money(lastM, c)}).`;
+  const byGroup = {};
+  items.forEach((x) => (byGroup[x.g.id] = (byGroup[x.g.id] || 0) + x.v));
+  const gRows = Object.entries(byGroup).sort((a, b) => b[1] - a[1]), gMax = gRows[0]?.[1] || 1;
+  const paidByMe = items.filter((x) => x.e.paidBy === meOf(x.g)).length;
+  const top = items.slice().sort((a, b) => b.v - a.v).slice(0, 5);
+  const chips = (list, act, sel, label) => `<div class="chips" role="tablist" aria-label="${label}">${list.map(([k, l]) =>
+    `<button class="chip" role="tab" data-act="${act}" data-v="${esc(k)}" aria-pressed="${k === sel}" aria-selected="${k === sel}">${esc(l)}</button>`).join("")}</div>`;
+  const key = `${c}|${period}|${items.length}|${total(items)}`;
+  const ai = !sampleApi ? "" : `<section class="section"><h2>Summary from Claude</h2><div class="ledger" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+      ${aiNote.key === key && aiNote.lines ? `<ul id="aiList" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px"></ul>` : `<span class="muted" style="font-size:13px">${aiNote.err && aiNote.key === key ? esc(aiNote.err) : "Claude reads these totals and points out what stands out, with one idea to spend less."}</span>`}
+      <button class="small" data-act="ai" data-key="${esc(key)}" style="align-self:flex-start"${aiNote.busy ? " disabled" : ""}>${aiNote.busy ? "Thinking…" : aiNote.key === key && aiNote.lines ? "Refresh summary" : "Summarize my spending"}</button></div></section>`;
+  $("main").innerHTML = `
+    <div class="summary">
+      ${curs.length > 1 ? chips(curs.map((x) => [x, x]), "homecur-i", c, "Currency") : ""}
+      <span class="muted" style="font-size:13px">Your share of spending this month</span>
+      <div class="big money">${money(thisM, c)}</div>
+      <div class="muted" style="font-size:13px">${trend}</div>
+    </div>
+    ${chips(Object.entries(PERIODS), "period", period, "Time range")}
+    ${!items.length ? `<div class="empty ledger"><p>No spending of yours in this range yet.</p></div>` : `
+    <div class="gwrap"><div class="gcol">
+      <section class="section"><h2>Your share by category</h2><div class="ledger chart">${catBars(items, c)}</div></section>
+      <section class="section"><h2>Biggest costs for you</h2><div class="ledger">${top.map((x) => `<div class="row click" data-act="open-exp" data-gid="${esc(x.g.id)}" data-id="${esc(x.e.id)}" tabindex="0" role="button">
+        <span class="av ic-av">${icon(x.cat)}</span><div class="grow"><div class="title">${esc(x.e.desc)}</div><div class="sub">${esc(x.g.name)} · ${new Date(x.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div></div>
+        <div class="right"><span class="muted">your share</span><span class="money">${money(x.v, c)}</span></div></div>`).join("")}</div></section>
+      ${ai}
+    </div><div class="gcol">
+      <section class="section"><h2>Your share, last 6 months</h2><div class="ledger">${monthBars(allMine, c)}</div></section>
+      <section class="section"><h2>By group</h2><div class="ledger chart">${gRows.map(([id, v]) => { const g = groupById(id);
+        return `<div class="hbar"><span>${avatar(g.name, "sq")}</span><span>${esc(g.name)}</span><span class="track"><i style="width:${(v / gMax) * 100}%"></i></span><span class="money">${money(v, c)}</span></div>`; }).join("")}</div></section>
+      <section class="section"><h2>At a glance</h2><div class="ledger">
+        <div class="row"><span class="grow">Expenses you were part of</span><span class="money">${items.length}</span></div>
+        <div class="row"><span class="grow">Ones you paid for</span><span class="money">${paidByMe}</span></div>
+        <div class="row"><span class="grow">Average share</span><span class="money">${money(Math.round(total(items) / items.length), c)}</span></div>
+      </div></section>
+    </div></div>`}`;
+  // Claude's text goes in as plain text, never as HTML
+  if (aiNote.key === key && aiNote.lines) aiNote.lines.forEach((l) => { const li = document.createElement("li"); li.textContent = l; $("aiList").appendChild(li); });
+}
+async function askSummary(key) {
+  const c = homeCur, since = { month: new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime(), "90": Date.now() - 90 * 864e5, all: 0 }[period];
+  const items = myItems(c).filter((x) => x.at >= since);
+  const sumBy = (f) => items.reduce((o, x) => ((o[f(x)] = (o[f(x)] || 0) + x.v / 100), o), {});
+  const data = { currency: c, period: PERIODS[period], yourShareTotal: items.reduce((a, x) => a + x.v, 0) / 100,
+    byCategory: sumBy((x) => x.cat), byGroup: sumBy((x) => x.g.name), byMonth: sumBy((x) => new Date(x.at).toISOString().slice(0, 7)),
+    biggest: items.slice().sort((a, b) => b.v - a.v).slice(0, 5).map((x) => ({ what: x.e.desc, share: x.v / 100, category: x.cat })) };
+  aiNote = { key, lines: null, busy: true, err: "" }; render();
+  try {
+    const r = await sampleApi(`You help someone understand their share of shared expenses with friends. Here are their totals as JSON (amounts in ${c}):
+${JSON.stringify(data)}
+Write 3 or 4 short observations about what stands out (biggest categories, changes over months, unusual costs), then one practical idea to spend less. Plain sentences, one per line, no bullets, no headings, no markdown, each under 25 words. Use only the numbers given.`, { modelTier: "quick" });
+    aiNote = { key, lines: r.text.split("\n").map((l) => l.replace(/^[-*•\d.)\s]+/, "").trim()).filter(Boolean).slice(0, 5), busy: false, err: "" };
+  } catch (e) {
+    aiNote = { key, lines: null, busy: false, err: e?.code === "rate_limited" ? "Claude is busy right now. Try again in a minute." : e?.code === "not_granted" ? "The summary needs your OK to use Claude." : "Couldn't get a summary right now. Try again." };
+  }
+  render();
 }
 
 // Two-tap confirm instead of confirm(), which the viewer blocks.
@@ -774,6 +873,9 @@ document.addEventListener("click", async (ev) => {
   }
   if (act === "add") addExpense();
   if (act === "homecur") { homeCur = t.dataset.cur; render(); }
+  if (act === "homecur-i") { homeCur = t.dataset.v; render(); }
+  if (act === "period") { period = t.dataset.v; render(); }
+  if (act === "ai" && !aiNote.busy) askSummary(t.dataset.key);
   if (act === "to-pay") $("payments")?.scrollIntoView({ block: "start" });
   if (act === "fresh" && armed(t, "Tap again to clear")) {
     try { for (const g of groups.filter(isExample)) await store.deleteGroup(g.id); go("home"); } catch (e) { writeFailed(e); }
@@ -1105,7 +1207,8 @@ const stripId = ({ id, ...rest }) => rest;
   if (window.claude) {
     const [sample, dl] = await Promise.all([claude.use("sample").catch(() => null), claude.use("downloads").catch(() => null)]);
     if (dl) { downloads = dl; render(); }
-    if (sample && (await sample.limits().catch(() => null))?.images) { sampleApi = sample; $("scanRow").hidden = false; }
+    if (sample) { sampleApi = sample; render(); }
+    if (sample && (await sample.limits().catch(() => null))?.images) $("scanRow").hidden = false;
   }
 })();
 </script>

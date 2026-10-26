@@ -79,6 +79,7 @@ Matches Splitwise Pro, except card import:
 - Dark, light or system theme, remembered on each device
 - Home overview: greeting, your total by currency, your suggested payments across all groups, latest activity
 - "Start fresh" clears the example trip; delete any group from its settings
+- Insights: your own share of spending across all groups by category, month and group, this month vs last, your biggest costs, and a plain-language summary from Claude
 - CSV export, one column per person, in the same layout as Splitwise's export
 - Fewest-payment settle-up plan, Venmo pay links and payment records
 
