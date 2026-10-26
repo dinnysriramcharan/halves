@@ -212,6 +212,7 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
 </div>
 <button id="fab" class="primary fab" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add expense</button>
 <div class="tabbar"><nav id="tabs" aria-label="Sections">
+  <button data-tab="home"><svg class="ic" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>Home</button>
   <button data-tab="groups"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg>Groups</button>
   <button data-tab="friends"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/></svg>Friends</button>
   <button data-tab="activity"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Activity</button>
@@ -288,6 +289,7 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
     <div id="gDefault"></div>
     <div class="formfoot">
       <span class="err" id="gErr"></span>
+      <button type="button" class="ghost" id="gDelete" hidden>Delete group</button>
       <button type="button" class="ghost" data-close>Cancel</button>
       <button class="primary" id="gSave">Create group</button>
     </div>
@@ -334,7 +336,7 @@ const hue = (s) => [...String(s)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) 
 const avatar = (name, cls = "") => `<span class="av ${cls}" style="background:var(--c${hue(name)})" aria-hidden="true">${esc((name || "?").trim()[0]?.toUpperCase() || "?")}</span>`;
 
 let groups = [], all = [], store = null, downloads = null, sampleApi = null;
-let tab = "groups", gid = null, sub = "expenses";
+let tab = "home", gid = null, sub = "expenses", homeCur = null;
 const groupById = (id) => groups.find((g) => g.id === id);
 const group = () => groupById(gid);
 const gx = (id = gid) => all.filter((e) => e.groupId === id);
@@ -403,7 +405,7 @@ function exampleGroup() {
   const dinnerItems = [{ name: "Margherita pizza", price: 1800, who: [a, b] }, { name: "Ribeye", price: 3400, who: [c] },
     { name: "Caesar salad", price: 1200, who: [d] }, { name: "Bottle of wine", price: 4200, who: ids }];
   return {
-    group: { name: "Tahoe trip (example)", currency: "USD", members: m, createdAt: now },
+    group: { name: "Tahoe trip (example)", currency: "USD", members: m, createdAt: now, example: true },
     me: a,
     expenses: [
       eq("Cabin, 3 nights", "Lodging", 64000, a, ids, 40),
@@ -431,6 +433,7 @@ function memoryStore() {
     async addExpense(data) { s.expenses.push({ id: uid(), ...data }); emitE(); },
     async saveExpense(id, data) { s.expenses = s.expenses.map((x) => (x.id === id ? { id, ...data } : x)); emitE(); },
     async deleteExpense(id) { s.expenses = s.expenses.filter((x) => x.id !== id); emitE(); },
+    async deleteGroup(id) { s.expenses = s.expenses.filter((x) => x.groupId !== id); s.groups = s.groups.filter((g) => g.id !== id); emitE(); emitG(); },
   };
 }
 function dbStore(db) {
@@ -445,6 +448,8 @@ function dbStore(db) {
     async addExpense(data) { await db.collection("expenses").add(data); },
     async saveExpense(id, data) { await db.doc("expenses/" + id).set(data); },
     async deleteExpense(id) { await db.doc("expenses/" + id).delete(); },
+    // expenses first, so a failure part-way never leaves expenses pointing at a missing group
+    async deleteGroup(id) { for (const e of all.filter((x) => x.groupId === id)) await db.doc("expenses/" + e.id).delete(); await db.doc("groups/" + id).delete(); },
   };
 }
 async function addExample() {
@@ -484,7 +489,7 @@ function render() {
   document.querySelectorAll("#tabs button").forEach((b) => (b.dataset.tab === active ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
   $("fab").hidden = !groups.length;
   $("main").dataset.view = tab === "group" ? "group" : "list";
-  const views = { groups: viewGroups, friends: viewFriends, activity: viewActivity, group: viewGroup };
+  const views = { home: viewHome, groups: viewGroups, friends: viewFriends, activity: viewActivity, group: viewGroup };
   views[tab]();
   renderSide(active);
   if (s && $("search")) { $("search").value = s.v; $("search").focus(); $("search").setSelectionRange(s.p, s.p); }
@@ -496,7 +501,7 @@ const brand = (page) => `<div class="title"><span class="m-only">Halves<span cla
 // Wide-screen sidebar: the same three sections as the phone tab bar, plus your groups.
 function renderSide(active) {
   const navIcon = (t) => document.querySelector(`#tabs [data-tab="${t}"] svg`).outerHTML;
-  const nav = [["groups", "Groups"], ["friends", "Friends"], ["activity", "Activity"]].map(([t, l]) =>
+  const nav = [["home", "Home"], ["groups", "Groups"], ["friends", "Friends"], ["activity", "Activity"]].map(([t, l]) =>
     `<button data-act="tab" data-tab="${t}"${active === t && tab !== "group" ? ' aria-current="page"' : ""}>${navIcon(t)}${l}</button>`).join("");
   const list = groups.map((g) => {
     const me = meOf(g), c = me ? netFor(g)[me] : 0;
@@ -511,18 +516,82 @@ function renderSide(active) {
     <div class="foot">${themeBtn("ghost", true)}</div>`;
 }
 
+const emptyHtml = `<div class="empty ledger">
+  <h1 style="font-size:24px">Split the bill, not the friendship</h1>
+  <p>Make a group for a trip, a flat or a dinner. Add who paid, and Halves works out who owes whom with the fewest payments.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button class="primary" data-act="new-group">Create a group</button>
+    <button data-act="example">Try an example trip</button>
+  </div></div>`;
+const isExample = (g) => g.example || / \(example\)$/.test(g.name);
+const exampleBanner = () => groups.some(isExample)
+  ? `<div class="notice" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:12em">You're exploring an example trip. Clear it when you're ready to add your own.</span><button class="small" data-act="fresh">Start fresh</button></div>` : "";
+function venmoLink(g, p) {
+  const to = g.members.find((m) => m.id === p.to);
+  return to?.venmo && cur(g) === "USD" ? `<a class="linkbtn" target="_blank" rel="noopener"
+    href="https://venmo.com/${encodeURIComponent(to.venmo)}?txn=pay&amount=${(p.amount / 100).toFixed(2)}&note=${encodeURIComponent(g.name)}">Pay on Venmo</a>` : "";
+}
+function activityRow(e) {
+  const g = groupById(e.groupId); if (!g) return "";
+  const me = meOf(g), fx = effect(e, me), isPay = e.kind === "payment";
+  const who = (id) => (id === me ? "You" : esc(nameIn(g, id)));
+  const text = isPay ? `${who(e.paidBy)} paid ${who(Object.keys(e.shares)[0]).replace(/^You$/, "you")} <span class="money">${gm(e.amount, g)}</span>`
+    : `${who(e.paidBy)} paid <span class="money">${gm(e.amount, g)}</span> for “${esc(e.desc)}”`;
+  const fxLine = fx == null || isPay ? "" : fx > 0 ? `<span class="pos">You get back ${gm(fx, g)}</span>` : fx < 0 ? `<span class="neg">You owe ${gm(-fx, g)}</span>` : `<span class="muted">Not involved</span>`;
+  return `<div class="row ${isPay ? "" : "click"}" ${isPay ? "" : `data-act="open-exp" data-gid="${esc(g.id)}" data-id="${esc(e.id)}" tabindex="0" role="button"`}>
+    <span class="av ic-av">${icon(isPay ? "Payment" : e.category)}</span>
+    <div class="grow"><div>${text}</div><div class="sub">${esc(g.name)} · ${new Date(e.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}${fxLine ? " · " + fxLine : ""}</div></div></div>`;
+}
+
+function viewHome() {
+  header(`${brand("Home")}${themeBtn("m-only")}`);
+  if (!groups.length) { $("main").innerHTML = emptyHtml; return; }
+  const mine = groups.map((g) => ({ g, me: meOf(g) })).filter((x) => x.me);
+  const names = new Set(mine.map(({ g, me }) => nameIn(g, me).trim().toLowerCase()));
+  const first = names.size === 1 ? nameIn(mine[0].g, mine[0].me).trim() : "";
+  const h = new Date().getHours(), hello = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const byCur = {}, payments = [];
+  for (const { g, me } of mine) {
+    const net = netFor(g), t = (byCur[cur(g)] ||= { owed: 0, owe: 0 });
+    if (net[me] > 0) t.owed += net[me]; else t.owe -= net[me];
+    Splits.settle(net).forEach((p, i) => { if (p.from === me || p.to === me) payments.push({ g, p, i, me }); });
+  }
+  const curs = Object.keys(byCur);
+  if (!curs.includes(homeCur)) homeCur = curs[0] || null;
+  let summary;
+  if (!mine.length) {
+    summary = `<div class="summary"><h1 style="font-size:24px">${hello}</h1>
+      <div class="whoami"><span style="font-weight:500">Which one is you?</span><span class="muted" style="font-size:13px">Open a group and tap your name. Your totals and payments then show up here.</span>
+      <div class="chips">${groups.map((g) => `<button class="chip" data-act="open-group" data-id="${esc(g.id)}">${esc(g.name)}</button>`).join("")}</div></div></div>`;
+  } else {
+    const t = byCur[homeCur], net = t.owed - t.owe;
+    const tabs = curs.length > 1 ? `<div class="chips" role="tablist" aria-label="Currency">${curs.map((c) =>
+      `<button class="chip" role="tab" data-act="homecur" data-cur="${c}" aria-pressed="${c === homeCur}" aria-selected="${c === homeCur}">${c}</button>`).join("")}</div>` : "";
+    summary = `<div class="summary">
+      <h1 style="font-size:24px">${hello}${first ? ", " + esc(first) : ""}</h1>
+      ${tabs}
+      <div class="big">${net > 0 ? `You are owed <span class="money pos">${money(net, homeCur)}</span>` : net < 0 ? `You owe <span class="money neg">${money(-net, homeCur)}</span>` : "You're all settled up"}</div>
+      <div class="muted" style="font-size:13px">Owed to you <span class="money pos">${money(t.owed, homeCur)}</span> · You owe <span class="money neg">${money(t.owe, homeCur)}</span></div>
+      <div class="tools"><button class="small primary" data-act="add">+ Add expense</button>
+        ${payments.length ? `<button class="small" data-act="to-pay">Settle up</button>` : ""}</div></div>`;
+  }
+  const payRows = payments.map(({ g, p, i, me }) => {
+    const other = nameIn(g, p.from === me ? p.to : p.from), youPay = p.from === me;
+    return `<div class="row">${avatar(other)}<div class="grow"><div class="title">${youPay ? `You pay ${esc(other)}` : `${esc(other)} pays you`}</div>
+      <div class="sub">${esc(g.name)}</div></div>
+      <span class="money ${youPay ? "neg" : "pos"}">${gm(p.amount, g)}</span>
+      <div class="actions">${youPay ? venmoLink(g, p) : ""}<button class="small" data-act="paid" data-gid="${esc(g.id)}" data-i="${i}">Record</button></div></div>`;
+  }).join("");
+  const recent = all.filter((e) => groupById(e.groupId)).slice(0, 5).map(activityRow).join("");
+  $("main").innerHTML = `${exampleBanner()}${summary}
+    ${payments.length ? `<section class="section" id="payments"><h2>Your suggested payments</h2><div class="ledger">${payRows}</div></section>` : ""}
+    <section class="section"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Latest activity</h2>${recent ? `<button class="link" data-act="tab" data-tab="activity">See all</button>` : ""}</div>
+      <div class="ledger">${recent || `<div class="row"><span class="muted">No expenses yet. Tap “Add expense” to log the first one.</span></div>`}</div></section>`;
+}
+
 function viewGroups() {
   header(`${brand("Groups")}${themeBtn("m-only")}<button class="small" data-act="new-group">New group</button>`);
-  if (!groups.length) {
-    $("main").innerHTML = `<div class="empty ledger">
-      <h1 style="font-size:24px">Split the bill, not the friendship</h1>
-      <p>Make a group for a trip, a flat or a dinner. Add who paid, and Halves works out who owes whom with the fewest payments.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-        <button class="primary" data-act="new-group">Create a group</button>
-        <button data-act="example">Try an example trip</button>
-      </div></div>`;
-    return;
-  }
+  if (!groups.length) { $("main").innerHTML = emptyHtml; return; }
   const totals = {}; let anyMe = false;
   const rows = groups.map((g) => {
     const me = meOf(g), net = netFor(g), n = gx(g.id).filter((e) => e.kind === "expense").length;
@@ -539,7 +608,7 @@ function viewGroups() {
   const big = !anyMe ? "Open a group and pick which person is you to see your totals."
     : !parts.length ? "You're all settled up"
     : [owed.length && `You are owed <span class="money pos">${fmtParts(owed)}</span>`, owe.length && `You owe <span class="money neg">${fmtParts(owe)}</span>`].filter(Boolean).join("<br>");
-  $("main").innerHTML = `
+  $("main").innerHTML = `${exampleBanner()}
     <div class="summary"><span class="muted" style="font-size:13px">Overall</span><div class="big"${anyMe ? "" : ' style="font-size:17px;font-weight:600"'}>${big}</div></div>
     <section class="section"><h2>Your groups</h2><div class="ledger">${rows}</div></section>`;
 }
@@ -577,17 +646,7 @@ function viewActivity() {
   header(`${brand("Activity")}${themeBtn("m-only")}`);
   const list = all.slice(0, 60);
   $("main").innerHTML = !list.length ? `<div class="empty ledger"><p>Nothing yet. Expenses and payments from all your groups show up here.</p></div>`
-    : `<section class="section"><h2>Recent activity</h2><div class="ledger">${list.map((e) => {
-      const g = groupById(e.groupId); if (!g) return "";
-      const me = meOf(g), fx = effect(e, me), isPay = e.kind === "payment";
-      const who = (id) => (id === me ? "You" : esc(nameIn(g, id)));
-      const text = isPay ? `${who(e.paidBy)} paid ${who(Object.keys(e.shares)[0]).replace(/^You$/, "you")} <span class="money">${gm(e.amount, g)}</span>`
-        : `${who(e.paidBy)} paid <span class="money">${gm(e.amount, g)}</span> for “${esc(e.desc)}”`;
-      const fxLine = fx == null || isPay ? "" : fx > 0 ? `<span class="pos">You get back ${gm(fx, g)}</span>` : fx < 0 ? `<span class="neg">You owe ${gm(-fx, g)}</span>` : `<span class="muted">Not involved</span>`;
-      return `<div class="row ${isPay ? "" : "click"}" ${isPay ? "" : `data-act="open-exp" data-gid="${esc(g.id)}" data-id="${esc(e.id)}" tabindex="0" role="button"`}>
-        <span class="av ic-av">${icon(isPay ? "Payment" : e.category)}</span>
-        <div class="grow"><div>${text}</div><div class="sub">${esc(g.name)} · ${new Date(e.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}${fxLine ? " · " + fxLine : ""}</div></div></div>`;
-    }).join("")}</div></section>`;
+    : `<section class="section"><h2>Recent activity</h2><div class="ledger">${list.map(activityRow).join("")}</div></section>`;
 }
 
 function viewGroup() {
@@ -662,9 +721,7 @@ function groupBalances(g, me, net) {
   }).join("");
   const mine = (p) => p.from === me || p.to === me;
   const planRows = plan.length ? plan.slice().sort((a, b) => mine(b) - mine(a)).map((p) => {
-    const i = plan.indexOf(p), to = g.members.find((m) => m.id === p.to);
-    const venmo = to?.venmo && cur() === "USD" ? `<a class="linkbtn" target="_blank" rel="noopener"
-      href="https://venmo.com/${encodeURIComponent(to.venmo)}?txn=pay&amount=${(p.amount / 100).toFixed(2)}&note=${encodeURIComponent(g.name)}">Pay on Venmo</a>` : "";
+    const i = plan.indexOf(p), venmo = venmoLink(g, p);
     const fromN = p.from === me ? "You" : esc(nameOf(p.from)), toN = p.to === me ? "you" : esc(nameOf(p.to));
     return `<div class="row">${avatar(nameOf(p.from))}<div class="grow"><div class="title">${fromN} ${p.from === me ? "pay" : "pays"} ${toN}</div>
       <div class="money" style="font-size:17px">${gm(p.amount)}</div></div>
@@ -716,6 +773,11 @@ document.addEventListener("click", async (ev) => {
     if (matchMedia("(min-width: 900px)").matches) document.querySelector(`[data-pane="${sub}"]`)?.scrollIntoView({ block: "start" });
   }
   if (act === "add") addExpense();
+  if (act === "homecur") { homeCur = t.dataset.cur; render(); }
+  if (act === "to-pay") $("payments")?.scrollIntoView({ block: "start" });
+  if (act === "fresh" && armed(t, "Tap again to clear")) {
+    try { for (const g of groups.filter(isExample)) await store.deleteGroup(g.id); go("home"); } catch (e) { writeFailed(e); }
+  }
   if (act === "theme") {
     themePref = THEMES[themePref].next;
     try { localStorage.setItem("theme", themePref); } catch {}
@@ -734,7 +796,7 @@ document.addEventListener("click", async (ev) => {
     try { await store.deleteExpense(t.dataset.id); } catch (e) { writeFailed(e); }
   }
   if (act === "paid" && armed(t, "Confirm")) {
-    const g = group(), p = Splits.settle(netFor(g))[+t.dataset.i];
+    const g = groupById(t.dataset.gid) || group(), p = Splits.settle(netFor(g))[+t.dataset.i];
     if (p) try {
       await store.addExpense({ groupId: g.id, kind: "payment", desc: "Settled up", amount: p.amount, paidBy: p.from, shares: { [p.to]: p.amount }, at: Date.now() });
     } catch (e) { writeFailed(e); }
@@ -771,6 +833,7 @@ function openGroupDlg(g) {
   const used = new Set((g ? gx(g.id) : []).flatMap((e) => [e.paidBy, ...Object.keys(e.shares)]));
   draftMembers = g ? g.members.map((m) => ({ ...m, locked: used.has(m.id) })) : [{ id: uid(), name: "", venmo: "" }, { id: uid(), name: "", venmo: "" }];
   $("gTitle").textContent = g ? "Group settings" : "New group";
+  $("gDelete").hidden = !g;
   $("gSave").textContent = g ? "Save changes" : "Create group";
   $("gName").value = g?.name || "";
   $("gCur").innerHTML = options(CURRENCIES, g?.currency || "USD");
@@ -799,6 +862,11 @@ $("gMembers").addEventListener("input", (ev) => {
 $("gMembers").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-mrm]");
   if (b && !b.disabled) { draftMembers.splice(+b.dataset.mrm, 1); renderMembers(); }
+});
+$("gDelete").addEventListener("click", async (ev) => {
+  if (!editingGroup || !armed(ev.currentTarget, "Tap again: deletes all its expenses")) return;
+  try { await store.deleteGroup(editingGroup.id); $("groupDlg").close(); go("groups"); }
+  catch (e) { writeFailed(e); $("groupDlg").close(); }
 });
 $("gAddMember").addEventListener("click", () => { draftMembers.push({ id: uid(), name: "", venmo: "" }); renderMembers(); });
 $("groupForm").addEventListener("submit", async (ev) => {
@@ -1029,7 +1097,7 @@ const stripId = ({ id, ...rest }) => rest;
   if (db) store = dbStore(db);
   else {
     store = memoryStore();
-    showNotice("Preview mode with an example trip. Open this page signed in to claude.ai to save groups and share them.");
+    showNotice("Preview mode: nothing is saved here. Open this page signed in to claude.ai to save groups and share them.");
   }
   store.watchGroups(onGroups);
   store.watchExpenses(onExpenses);
