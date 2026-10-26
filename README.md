@@ -2,6 +2,42 @@
 
 Split group expenses with friends: equally, by exact amounts, or item by item from a scanned receipt. Halves shows each person's balance and the fewest payments needed to settle up, with Venmo pay links.
 
+## Why Halves, not Splitwise?
+
+Splitwise is a good app, but its free plan has become hard to use. Free users hit a daily limit of roughly 3–5 expenses, see ads between screens, and lose features that used to be free. Splitwise Pro costs about $4.99 a month. Halves gives you all of it for free.
+
+| | Splitwise Free | Splitwise Pro | Halves |
+|---|---|---|---|
+| Price | Free | ~$4.99/month | Free |
+| Expenses per day | ~3–5 | Unlimited | Unlimited |
+| Ads | Yes | No | No |
+| Receipt scanning | No | Yes | Yes, and it also picks up currency and category |
+| Split by item | No | Yes | Yes, with tax and tip shared by what each person ordered |
+| Currency conversion | No | Yes | Yes, with the rate visible and editable |
+| Search expenses | No | Yes | Yes, plus a category filter |
+| Spending charts | No | Yes | Yes, by category and by month |
+| Default split per group | No | Yes | Yes |
+| Fewest-payment settle-up | Yes | Yes | Yes |
+| Export to CSV | Yes | Yes | Yes, same column layout |
+
+Also in Halves:
+
+- **Your side first.** Every expense says "you lent" or "you borrowed", and the Friends tab totals what each person owes you across all groups.
+- **Exact to the cent.** All money is kept in whole cents, and leftover pennies are handed out fairly, so balances always net to zero. A test checks this.
+- **Pay in one tap.** Each suggested payment links to Venmo with the amount filled in.
+- **Small and open.** Two files, no build step. Read it, fork it, change it.
+
+Where Splitwise is still better today:
+
+- **Everyone already has it.** Your friends don't need to learn anything new.
+- **Native iOS and Android apps,** plus push notifications and comments on expenses.
+- **Card import (US).** Splitwise Pro pulls in card transactions. Halves doesn't yet.
+- **Recurring expenses.** Rent and bills that repeat every month.
+
+These are listed under "Not built yet" below.
+
+Splitwise feature and pricing details are as of 2026, from public reviews and pricing pages. Check splitwise.com for the current plan.
+
 ## Files
 
 | File | What it is |
