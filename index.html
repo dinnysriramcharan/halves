@@ -3,11 +3,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: one narrow app column, ledger rows; amounts set in mono like a receipt. */
+/* Layout: phone-first app shell. Tab bar at the bottom, one screen at a time, ledger rows with amounts in mono. */
 :root {
   --bg: #0f1318; --surface: #171c23; --raised: #1e242d; --line: #29313c;
   --fg: #e8ecf2; --muted: #8b95a5; --accent: #9aa8ff; --on-accent: #10131a;
   --pos: #5fd0a0; --neg: #ff8a7a;
+  --c1: #9aa8ff; --c2: #5fd0a0; --c3: #f2b75b; --c4: #ff8a7a; --c5: #c79bff; --c6: #6cc6e8;
   --display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
   --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -16,16 +17,19 @@
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
   --bg: #f4f5f8; --surface: #ffffff; --raised: #eef0f5; --line: #dce0e8;
   --fg: #141821; --muted: #5b6474; --accent: #4757d1; --on-accent: #ffffff;
-  --pos: #11805a; --neg: #c23d2c; color-scheme: light; } }
+  --pos: #11805a; --neg: #c23d2c;
+  --c1: #4757d1; --c2: #11805a; --c3: #a8650a; --c4: #c23d2c; --c5: #7a45c9; --c6: #0f7899; color-scheme: light; } }
 :root[data-theme="light"] {
   --bg: #f4f5f8; --surface: #ffffff; --raised: #eef0f5; --line: #dce0e8;
   --fg: #141821; --muted: #5b6474; --accent: #4757d1; --on-accent: #ffffff;
-  --pos: #11805a; --neg: #c23d2c; color-scheme: light; }
+  --pos: #11805a; --neg: #c23d2c;
+  --c1: #4757d1; --c2: #11805a; --c3: #a8650a; --c4: #c23d2c; --c5: #7a45c9; --c6: #0f7899; color-scheme: light; }
 
+html, body { min-height: 100%; }
 body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
-.app { max-width: 560px; margin: 0 auto; padding-block: 20px 120px;
+.app { max-width: 560px; margin: 0 auto; padding-block: 16px calc(170px + env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: flex; flex-direction: column; gap: 24px; }
+  display: flex; flex-direction: column; gap: 20px; }
 h1, h2 { font-family: var(--display); margin: 0; text-wrap: balance; }
 h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .money { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -37,6 +41,7 @@ button:hover { border-color: var(--muted); }
 button:disabled { opacity: .45; cursor: not-allowed; }
 button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 button.ghost { background: transparent; }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); font-size: 13px; }
 button.small { padding: 5px 10px; font-size: 13px; }
 button[data-armed] { border-color: var(--neg); color: var(--neg); }
 .linkbtn { display: inline-block; text-decoration: none; color: var(--accent); border: 1px solid var(--accent); border-radius: 10px; padding: 5px 10px; font-size: 13px; }
@@ -44,38 +49,59 @@ button[data-armed] { border-color: var(--neg); color: var(--neg); }
 input, select, textarea { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; min-width: 0; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
 .num { text-align: right; font-family: var(--mono); }
+svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.brand { font-family: var(--display); font-weight: 700; font-size: 22px; margin-right: auto; letter-spacing: -.01em; }
-.brand span { color: var(--accent); }
-.top select { max-width: 60%; }
+/* Header */
+.top { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.top .title { font-family: var(--display); font-weight: 700; font-size: 22px; margin-right: auto; letter-spacing: -.01em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top .title span { color: var(--accent); }
+.back { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 6px 4px; color: var(--accent); font-weight: 500; }
 .notice { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 14px; font-size: 13px; color: var(--muted); }
 .notice.error { border-color: var(--neg); color: var(--neg); }
 
-.hero { display: flex; flex-direction: column; gap: 8px; }
-.hero h1 { font-size: 30px; line-height: 1.15; letter-spacing: -.01em; }
-.hero .tools { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Avatars */
+.av { width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 600; font-size: 14px;
+  color: var(--bg); background: var(--c1); font-family: var(--display); }
+.av.sq { border-radius: 10px; width: 44px; height: 44px; font-size: 18px; }
+.av.lg { width: 56px; height: 56px; border-radius: 14px; font-size: 24px; }
+.av.ic-av { background: var(--raised); color: var(--muted); border-radius: 10px; }
+
+/* Summary card */
+.summary { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+.summary .big { font-family: var(--display); font-size: 26px; font-weight: 700; line-height: 1.2; }
+.summary .line { display: flex; gap: 14px; align-items: center; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
 .section { display: flex; flex-direction: column; gap: 10px; }
-.ledger { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.ledger { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
 .row + .row { border-top: 1px solid var(--line); }
 .row .grow { flex: 1; min-width: 0; }
-.row .title { overflow-wrap: anywhere; }
-.row .sub { font-size: 13px; color: var(--muted); }
+.row .title { overflow-wrap: anywhere; font-weight: 500; }
+.row .sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .row.click { cursor: pointer; }
 .row.click:hover { background: var(--raised); }
+.right { text-align: right; flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; line-height: 1.3; }
+.right .money { font-size: 15px; }
+.monthhead { padding: 10px 14px 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); background: var(--raised); }
+.date { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 30px; flex: none; text-transform: uppercase; text-align: center; line-height: 1.2; }
+.date b { display: block; font-size: 17px; color: var(--fg); font-weight: 500; }
 .bar { height: 4px; border-radius: 2px; background: var(--raised); margin-top: 6px; position: relative; overflow: hidden; }
 .bar i { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
-.date { font-family: var(--mono); font-size: 12px; color: var(--muted); width: 44px; flex: none; text-transform: uppercase; }
 .tag { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--muted); }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.empty { text-align: center; padding: 40px 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.empty { text-align: center; padding: 36px 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .empty p { margin: 0; color: var(--muted); max-width: 34ch; }
 .filters { display: flex; gap: 8px; }
 .filters input { flex: 1; }
+.subtabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+.subtabs button { flex: 1; border: 0; background: transparent; border-radius: 9px; padding: 8px; color: var(--muted); font-weight: 500; }
+.subtabs button[aria-selected="true"] { background: var(--raised); color: var(--fg); }
+.whoami { display: flex; flex-direction: column; gap: 8px; border: 1px dashed var(--accent); border-radius: 12px; padding: 12px 14px; }
 
+/* Charts */
 .chart { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.hbar { display: grid; grid-template-columns: minmax(0, 7.5em) 1fr auto; gap: 10px; align-items: center; font-size: 13px; }
+.hbar { display: grid; grid-template-columns: 22px minmax(0, 7em) 1fr auto; gap: 10px; align-items: center; font-size: 13px; }
 .hbar .track { height: 10px; border-radius: 5px; background: var(--raised); overflow: hidden; }
 .hbar .track i { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
 .months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: end; height: 140px; padding: 14px 14px 0; }
@@ -85,9 +111,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); outline
 .months .v { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
 .mlabels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 6px 14px 14px; font-size: 12px; color: var(--muted); text-align: center; text-transform: uppercase; }
 
-.fab { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  padding: 14px 20px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+/* Tab bar + FAB */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabbar nav { max-width: 560px; margin: 0 auto; display: flex; }
+.tabbar button { flex: 1; border: 0; background: none; border-radius: 0; padding: 10px 4px 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; color: var(--muted); }
+.tabbar button[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.fab { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 6;
+  padding: 14px 20px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35); display: inline-flex; gap: 6px; align-items: center; }
+@media (min-width: 640px) { .fab { right: max(16px, calc(50vw - 280px + 16px)); } }
 
+/* Dialogs */
 dialog { width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); border: 1px solid var(--line); border-radius: 16px;
   background: var(--surface); color: var(--fg); padding: 0; }
 dialog::backdrop { background: rgba(5, 8, 12, .6); }
@@ -124,32 +158,28 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
 .scan input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .scan label.btn:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .total-line { display: flex; justify-content: space-between; font-weight: 600; border-top: 1px solid var(--line); padding-top: 10px; }
-@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 26px; } .seg label { font-size: 13px; } }
+.pick { display: flex; flex-direction: column; gap: 8px; }
+.pick button { display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 12px; }
+@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } .summary .big { font-size: 22px; } .seg label { font-size: 13px; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: border-color .15s, background .15s; } }
 </style>
 
 <div class="app">
-  <header class="top">
-    <div class="brand">Halves<span>.</span></div>
-    <select id="groupSel" aria-label="Group" hidden></select>
-    <button id="newGroupBtn" class="small">New group</button>
-  </header>
+  <header class="top" id="top"><div class="title">Halves<span>.</span></div></header>
   <div id="notice" class="notice" hidden></div>
-  <main id="main" style="display:flex;flex-direction:column;gap:24px"><div class="empty"><p>Loading your groups…</p></div></main>
-  <section class="section" id="activitySec" hidden>
-    <h2>Activity</h2>
-    <div class="filters">
-      <input id="search" type="search" placeholder="Search expenses, people, categories" aria-label="Search expenses">
-      <select id="catFilter" aria-label="Category"></select>
-    </div>
-    <div class="ledger" id="activity"></div>
-  </section>
+  <main id="main" style="display:flex;flex-direction:column;gap:20px"><div class="empty"><p>Loading your groups…</p></div></main>
 </div>
-<button id="fab" class="primary fab" hidden>+ Add expense</button>
+<button id="fab" class="primary fab" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add expense</button>
+<div class="tabbar"><nav id="tabs" aria-label="Sections">
+  <button data-tab="groups"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg>Groups</button>
+  <button data-tab="friends"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/></svg>Friends</button>
+  <button data-tab="activity"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Activity</button>
+</nav></div>
 
 <dialog id="expDlg">
   <form id="expForm" novalidate>
     <h2 id="expTitle">Add expense</h2>
+    <span class="muted" id="expGroup" style="font-size:13px;margin-top:-8px"></span>
     <label class="field">What was it for?<input id="expDesc" placeholder="Dinner at Rosa's" autocomplete="off"></label>
     <div class="grid2">
       <label class="field">Amount
@@ -223,26 +253,58 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
   </form>
 </dialog>
 
+<dialog id="pickDlg">
+  <form method="dialog">
+    <h2>Add to which group?</h2>
+    <div class="pick" id="pickList"></div>
+    <div class="formfoot"><button type="button" class="ghost" data-close>Cancel</button></div>
+  </form>
+</dialog>
+
 <script src="splits.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const CURRENCIES = ["USD", "EUR", "GBP", "INR", "CAD", "AUD", "JPY", "MXN", "SGD", "AED", "CHF", "CNY"];
 const CATEGORIES = ["General", "Food & drink", "Groceries", "Rent", "Utilities", "Transport", "Travel", "Lodging", "Entertainment", "Shopping"];
+const ICONS = {
+  "General": "M6 3h12v18l-3-2-3 2-3-2-3 2z M9 8h6 M9 12h6",
+  "Food & drink": "M7 3v18 M4 3v5a3 3 0 0 0 6 0V3 M17 21V3c-2 0-3 3-3 7s1 4 3 4",
+  "Groceries": "M3 4h2l2.4 11h10.6l2-8H6 M9 20h.01 M17 20h.01",
+  "Rent": "M4 11l8-7 8 7v9H4z M10 20v-5h4v5",
+  "Utilities": "M13 3L5 14h6l-1 7 8-11h-6z",
+  "Transport": "M5 16v-5l2-5h10l2 5v5z M5 16v2 M19 16v2 M8 13h.01 M16 13h.01",
+  "Travel": "M3 13l18-7-5 15-4-6z M12 15l4-5",
+  "Lodging": "M3 18V7 M3 13h18v5 M21 13a3 3 0 0 0-3-3h-8v3 M6.5 11h.01",
+  "Entertainment": "M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z M14 7v12",
+  "Shopping": "M5 8h14l-1 12H6z M9 8a3 3 0 0 1 6 0",
+  "Payment": "M4 9h14l-3-3 M20 15H6l3 3",
+};
+const icon = (cat) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[cat] || ICONS.General}"/></svg>`;
 const fmts = {};
 const money = (c, cur) => (fmts[cur] ||= new Intl.NumberFormat("en-US", { style: "currency", currency: cur })).format(c / 100);
 const toCents = (s) => { const n = parseFloat(String(s).replace(/[^0-9.\-]/g, "")); return isFinite(n) ? Math.round(n * 100) : 0; };
 const fixed = (c) => (c ? (c / 100).toFixed(2) : "");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+const mon = new Intl.DateTimeFormat("en-US", { month: "short" }), monYear = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
 const uid = () => Math.random().toString(36).slice(2, 10);
 const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
 const options = (list, sel) => list.map((v) => `<option value="${esc(v)}"${v === sel ? " selected" : ""}>${esc(v)}</option>`).join("");
+const hue = (s) => [...String(s)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % 6 + 1;
+const avatar = (name, cls = "") => `<span class="av ${cls}" style="background:var(--c${hue(name)})" aria-hidden="true">${esc((name || "?").trim()[0]?.toUpperCase() || "?")}</span>`;
 
-let groups = [], expenses = [], gid = null, unsubExp = null, store = null, downloads = null, sampleApi = null;
-const group = () => groups.find((g) => g.id === gid);
-const cur = () => group()?.currency || "USD";
-const gm = (amount) => money(amount, cur());
-const nameOf = (id) => group()?.members.find((m) => m.id === id)?.name || "Someone";
+let groups = [], all = [], store = null, downloads = null, sampleApi = null;
+let tab = "groups", gid = null, sub = "expenses";
+const groupById = (id) => groups.find((g) => g.id === id);
+const group = () => groupById(gid);
+const gx = (id = gid) => all.filter((e) => e.groupId === id);
+const cur = (g = group()) => g?.currency || "USD";
+const gm = (amount, g) => money(amount, cur(g));
+const nameIn = (g, id) => g?.members.find((m) => m.id === id)?.name || "Someone";
+const nameOf = (id) => nameIn(group(), id);
+
+// Which member is "you" in each group is remembered on this device only.
+function meOf(g) { try { const id = localStorage.getItem("me:" + g.id); return g.members.some((m) => m.id === id) ? id : null; } catch { return null; } }
+function setMe(g, id) { try { localStorage.setItem("me:" + g.id, id); } catch {} }
 
 function showNotice(text, isError) {
   const n = $("notice"); n.textContent = text; n.hidden = !text; n.classList.toggle("error", !!isError);
@@ -272,23 +334,24 @@ function rememberRate(from, to, r) { try { localStorage.setItem("rate:" + from +
 // ---- Example data ----
 function exampleGroup() {
   const m = ["Ana", "Ben", "Chris", "Dee"].map((name) => ({ id: uid(), name, venmo: "" }));
-  const [a, b, c, d] = m.map((x) => x.id), all = m.map((x) => x.id), now = Date.now(), D = 864e5;
+  const [a, b, c, d] = m.map((x) => x.id), ids = m.map((x) => x.id), now = Date.now(), D = 864e5;
   const eq = (desc, category, amount, paidBy, who, daysAgo) =>
     ({ kind: "expense", desc, category, amount, paidBy, shares: Splits.equalShares(amount, who), at: now - daysAgo * D,
        currency: "USD", origAmount: amount, rate: 1, split: { mode: "equal", who } });
   const dinnerItems = [{ name: "Margherita pizza", price: 1800, who: [a, b] }, { name: "Ribeye", price: 3400, who: [c] },
-    { name: "Caesar salad", price: 1200, who: [d] }, { name: "Bottle of wine", price: 4200, who: all }];
+    { name: "Caesar salad", price: 1200, who: [d] }, { name: "Bottle of wine", price: 4200, who: ids }];
   return {
     group: { name: "Tahoe trip (example)", currency: "USD", members: m, createdAt: now },
+    me: a,
     expenses: [
-      eq("Cabin, 3 nights", "Lodging", 64000, a, all, 40),
-      eq("Groceries", "Groceries", 8640, b, all, 39),
+      eq("Cabin, 3 nights", "Lodging", 64000, a, ids, 40),
+      eq("Groceries", "Groceries", 8640, b, ids, 39),
       { kind: "expense", desc: "Dinner at Rosa's", category: "Food & drink", amount: 12506, paidBy: c,
         shares: Splits.itemizedShares(dinnerItems, 1906), at: now - 38 * D, currency: "USD", origAmount: 12506, rate: 1,
         split: { mode: "items", items: dinnerItems, tax: 856, tip: 1050 } },
       eq("Gas", "Transport", 5200, d, [a, d], 37),
-      eq("Ski lift tickets", "Entertainment", 39600, b, all, 8),
-      eq("Brunch", "Food & drink", 9200, a, all, 2),
+      eq("Ski lift tickets", "Entertainment", 39600, b, ids, 8),
+      eq("Brunch", "Food & drink", 9200, a, ids, 2),
     ],
   };
 }
@@ -297,13 +360,10 @@ function exampleGroup() {
 function memoryStore() {
   const s = { groups: [], expenses: [], g: [], e: [] };
   const emitG = () => s.g.forEach((f) => f(s.groups.slice()));
-  const emitE = () => s.e.forEach((f) => f());
+  const emitE = () => s.e.forEach((f) => f(s.expenses.slice().sort((p, q) => q.at - p.at)));
   return {
     watchGroups(cb) { s.g.push(cb); cb(s.groups.slice()); },
-    watchExpenses(id, cb) {
-      const f = () => cb(s.expenses.filter((x) => x.groupId === id).sort((p, q) => q.at - p.at));
-      s.e.push(f); f(); return () => (s.e = s.e.filter((x) => x !== f));
-    },
+    watchExpenses(cb) { s.e.push(cb); emitE(); },
     async addGroup(data) { const id = uid(); s.groups.push({ id, ...data }); emitG(); return id; },
     async saveGroup(id, data) { s.groups = s.groups.map((g) => (g.id === id ? { id, ...data } : g)); emitG(); },
     async addExpense(data) { s.expenses.push({ id: uid(), ...data }); emitE(); },
@@ -316,7 +376,8 @@ function dbStore(db) {
   const fail = () => showNotice("Lost the connection to your groups. Reload the page to reconnect.", true);
   return {
     watchGroups(cb) { db.collection("groups").orderBy("createdAt").onSnapshot((s) => cb(rows(s)), fail); },
-    watchExpenses(id, cb) { return db.collection("expenses").where("groupId", "==", id).orderBy("at", "desc").onSnapshot((s) => cb(rows(s)), fail); },
+    // shortcut: one subscription to every expense keeps cross-group views simple; split per group past ~1,000 expenses.
+    watchExpenses(cb) { db.collection("expenses").orderBy("at", "desc").limit(1000).onSnapshot((s) => cb(rows(s)), fail); },
     async addGroup(data) { return (await db.collection("groups").add(data)).id; },
     async saveGroup(id, data) { await db.doc("groups/" + id).set(data); },
     async addExpense(data) { await db.collection("expenses").add(data); },
@@ -325,61 +386,51 @@ function dbStore(db) {
   };
 }
 async function addExample() {
-  const { group: g, expenses: list } = exampleGroup();
+  const { group: g, expenses: list, me } = exampleGroup();
   try {
     const id = await store.addGroup(g);
+    setMe({ id }, me);
     for (const e of list) await store.addExpense({ ...e, groupId: id });
-    selectGroup(id);
+    openGroup(id);
   } catch (e) { writeFailed(e); }
 }
 
-// ---- Rendering ----
-function selectGroup(id) {
-  gid = id;
-  unsubExp?.();
-  expenses = [];
-  $("search").value = ""; $("catFilter").value = "";
-  unsubExp = id ? store.watchExpenses(id, (list) => { expenses = list; render(); }) : null;
-  render();
+// ---- Money from "your" side ----
+function netFor(g) { return Splits.balances(gx(g.id), g.members.map((m) => m.id)); }
+// What an expense did to you: positive = you lent, negative = you borrowed.
+function effect(e, me) {
+  if (!me) return null;
+  return (e.paidBy === me ? e.amount : 0) - (e.shares[me] || 0);
 }
-function onGroups(list) {
-  groups = list;
-  const sel = $("groupSel");
-  sel.innerHTML = list.map((g) => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join("");
-  sel.hidden = !list.length;
-  if (!list.find((g) => g.id === gid)) selectGroup(list[0]?.id || null);
-  else { sel.value = gid; render(); }
+function statusHtml(c, g) {
+  if (c > 0) return `<span class="pos">you are owed</span><span class="money pos">${gm(c, g)}</span>`;
+  if (c < 0) return `<span class="neg">you owe</span><span class="money neg">${gm(-c, g)}</span>`;
+  return `<span class="muted">settled up</span>`;
 }
 
-function insightsHtml() {
-  const spend = expenses.filter((e) => e.kind === "expense");
-  if (!spend.length) return "";
-  const byCat = {};
-  spend.forEach((e) => (byCat[e.category || "General"] = (byCat[e.category || "General"] || 0) + e.amount));
-  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
-  const catMax = cats[0][1];
-  const now = new Date(), months = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ y: d.getFullYear(), m: d.getMonth(), label: d.toLocaleString("en-US", { month: "short" }), total: 0 });
-  }
-  spend.forEach((e) => { const d = new Date(e.at); const mo = months.find((x) => x.y === d.getFullYear() && x.m === d.getMonth()); if (mo) mo.total += e.amount; });
-  const mMax = Math.max(1, ...months.map((x) => x.total));
-  const short = (c) => (c >= 100000 ? Math.round(c / 100000) + "k" : String(Math.round(c / 100)));
-  return `<section class="section"><h2>Spending by category</h2><div class="ledger chart">
-      ${cats.map(([c, v]) => `<div class="hbar"><span class="title">${esc(c)}</span><span class="track"><i style="width:${(v / catMax) * 100}%"></i></span><span class="money">${gm(v)}</span></div>`).join("")}
-    </div></section>
-    <section class="section"><h2>Last 6 months</h2><div class="ledger">
-      <div class="months">${months.map((x) => `<div class="col${x.total ? "" : " zero"}" title="${esc(x.label)}: ${gm(x.total)}"><span class="v">${x.total ? short(x.total) : ""}</span><i style="height:${(x.total / mMax) * 100}%"></i></div>`).join("")}</div>
-      <div class="mlabels">${months.map((x) => `<span>${x.label}</span>`).join("")}</div>
-    </div></section>`;
-}
+// ---- Navigation ----
+function go(t) { tab = t; if (t !== "group") gid = null; render(); window.scrollTo(0, 0); }
+function openGroup(id) { gid = id; tab = "group"; sub = "expenses"; render(); window.scrollTo(0, 0); }
+
+function onGroups(list) { groups = list; if (tab === "group" && !group()) tab = "groups"; render(); }
+function onExpenses(list) { all = list; render(); }
 
 function render() {
-  const g = group();
-  $("fab").hidden = !g;
-  $("activitySec").hidden = !g;
-  if (!g) {
+  // keep typing in the search box while live updates re-render the screen
+  const s = document.activeElement?.id === "search" ? { v: $("search").value, p: $("search").selectionStart } : null;
+  const active = tab === "group" ? "groups" : tab;
+  document.querySelectorAll("#tabs button").forEach((b) => (b.dataset.tab === active ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+  $("fab").hidden = !groups.length;
+  const views = { groups: viewGroups, friends: viewFriends, activity: viewActivity, group: viewGroup };
+  views[tab]();
+  if (s && $("search")) { $("search").value = s.v; $("search").focus(); $("search").setSelectionRange(s.p, s.p); }
+}
+function header(html) { $("top").innerHTML = html; }
+const brand = `<div class="title">Halves<span>.</span></div>`;
+
+function viewGroups() {
+  header(`${brand}<button class="small" data-act="new-group">New group</button>`);
+  if (!groups.length) {
     $("main").innerHTML = `<div class="empty ledger">
       <h1 style="font-size:24px">Split the bill, not the friendship</h1>
       <p>Make a group for a trip, a flat or a dinner. Add who paid, and Halves works out who owes whom with the fewest payments.</p>
@@ -389,64 +440,173 @@ function render() {
       </div></div>`;
     return;
   }
-  $("groupSel").value = g.id;
-  const ids = g.members.map((m) => m.id);
-  const net = Splits.balances(expenses, ids);
-  const plan = Splits.settle(net);
-  const spent = expenses.filter((e) => e.kind === "expense").reduce((a, e) => a + e.amount, 0);
-  const max = Math.max(1, ...Object.values(net).map(Math.abs));
+  const totals = {}; let anyMe = false;
+  const rows = groups.map((g) => {
+    const me = meOf(g), net = netFor(g), n = gx(g.id).filter((e) => e.kind === "expense").length;
+    if (me) { anyMe = true; totals[cur(g)] = (totals[cur(g)] || 0) + net[me]; }
+    const right = me ? statusHtml(net[me], g) : `<span class="muted">${n} expense${n === 1 ? "" : "s"}</span>`;
+    return `<div class="row click" data-act="open-group" data-id="${esc(g.id)}" tabindex="0" role="button">
+      ${avatar(g.name, "sq")}
+      <div class="grow"><div class="title">${esc(g.name)}</div><div class="sub">${g.members.length} people · ${esc(cur(g))}</div></div>
+      <div class="right">${right}</div></div>`;
+  }).join("");
+  const parts = Object.entries(totals).filter(([, c]) => c);
+  const owed = parts.filter(([, c]) => c > 0), owe = parts.filter(([, c]) => c < 0);
+  const fmtParts = (ps) => ps.map(([k, c]) => money(Math.abs(c), k)).join(" + ");
+  const big = !anyMe ? "Open a group and pick which person is you to see your totals."
+    : !parts.length ? "You're all settled up"
+    : [owed.length && `You are owed <span class="money pos">${fmtParts(owed)}</span>`, owe.length && `You owe <span class="money neg">${fmtParts(owe)}</span>`].filter(Boolean).join("<br>");
+  $("main").innerHTML = `
+    <div class="summary"><span class="muted" style="font-size:13px">Overall</span><div class="big"${anyMe ? "" : ' style="font-size:17px;font-weight:600"'}>${big}</div></div>
+    <section class="section"><h2>Your groups</h2><div class="ledger">${rows}</div></section>`;
+}
 
+function viewFriends() {
+  header(`${brand}`);
+  // Pair you with each person through each group's settle-up plan, then add up by name.
+  const friends = {};
+  let anyMe = false;
+  for (const g of groups) {
+    const me = meOf(g); if (!me) continue; anyMe = true;
+    for (const p of Splits.settle(netFor(g))) {
+      if (p.from !== me && p.to !== me) continue;
+      const other = p.from === me ? p.to : p.from, name = nameIn(g, other), key = name.toLowerCase();
+      const f = (friends[key] ||= { name, byCur: {}, groups: [] });
+      const c = p.from === me ? -p.amount : p.amount;
+      f.byCur[cur(g)] = (f.byCur[cur(g)] || 0) + c;
+      f.groups.push(`${g.name}: ${c > 0 ? "owes you" : "you owe"} ${gm(Math.abs(c), g)}`);
+    }
+  }
+  const list = Object.values(friends);
+  $("main").innerHTML = !anyMe
+    ? `<div class="empty ledger"><h1 style="font-size:22px">Who are you in each group?</h1><p>Open a group and tap your name. Then Halves shows what each friend owes you, across all your groups.</p></div>`
+    : !list.length ? `<div class="empty ledger"><h1 style="font-size:22px">You're all square</h1><p>Nobody owes you and you owe nobody. When that changes, people show up here.</p></div>`
+    : `<section class="section"><h2>Friends</h2><div class="ledger">${list.map((f) => {
+        const amts = Object.entries(f.byCur).filter(([, c]) => c).map(([k, c]) => `<span class="money ${c > 0 ? "pos" : "neg"}">${money(Math.abs(c), k)}</span>`).join("");
+        const net = sum(f.byCur);
+        return `<div class="row">${avatar(f.name)}<div class="grow"><div class="title">${esc(f.name)}</div>
+          <div class="sub">${f.groups.map(esc).join("<br>")}</div></div>
+          <div class="right"><span class="${net > 0 ? "pos" : "neg"}">${net > 0 ? "owes you" : "you owe"}</span>${amts}</div></div>`;
+      }).join("")}</div></section>`;
+}
+
+function viewActivity() {
+  header(`${brand}`);
+  const list = all.slice(0, 60);
+  $("main").innerHTML = !list.length ? `<div class="empty ledger"><p>Nothing yet. Expenses and payments from all your groups show up here.</p></div>`
+    : `<section class="section"><h2>Recent activity</h2><div class="ledger">${list.map((e) => {
+      const g = groupById(e.groupId); if (!g) return "";
+      const me = meOf(g), fx = effect(e, me), isPay = e.kind === "payment";
+      const who = (id) => (id === me ? "You" : esc(nameIn(g, id)));
+      const text = isPay ? `${who(e.paidBy)} paid ${who(Object.keys(e.shares)[0]).replace(/^You$/, "you")} <span class="money">${gm(e.amount, g)}</span>`
+        : `${who(e.paidBy)} paid <span class="money">${gm(e.amount, g)}</span> for “${esc(e.desc)}”`;
+      const fxLine = fx == null || isPay ? "" : fx > 0 ? `<span class="pos">You get back ${gm(fx, g)}</span>` : fx < 0 ? `<span class="neg">You owe ${gm(-fx, g)}</span>` : `<span class="muted">Not involved</span>`;
+      return `<div class="row ${isPay ? "" : "click"}" ${isPay ? "" : `data-act="open-exp" data-gid="${esc(g.id)}" data-id="${esc(e.id)}" tabindex="0" role="button"`}>
+        <span class="av ic-av">${icon(isPay ? "Payment" : e.category)}</span>
+        <div class="grow"><div>${text}</div><div class="sub">${esc(g.name)} · ${new Date(e.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}${fxLine ? " · " + fxLine : ""}</div></div></div>`;
+    }).join("")}</div></section>`;
+}
+
+function viewGroup() {
+  const g = group();
+  header(`<button class="back" data-act="tab" data-tab="groups"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Groups</button>
+    <span style="margin-left:auto"></span><button class="small" data-act="settings">Settings</button>`);
+  const me = meOf(g), net = netFor(g);
+  const spent = gx().filter((e) => e.kind === "expense").reduce((a, e) => a + e.amount, 0);
+  const meLine = me
+    ? `<div class="big">${net[me] > 0 ? `You are owed <span class="money pos">${gm(net[me])}</span>` : net[me] < 0 ? `You owe <span class="money neg">${gm(-net[me])}</span>` : "You're settled up"}</div>
+       <span class="muted" style="font-size:13px">You're ${esc(nameOf(me))} · <button class="link" data-act="me-reset">change</button></span>`
+    : `<div class="whoami"><span style="font-weight:500">Which one is you?</span><span class="muted" style="font-size:13px">Saved on this device so Halves can show what you owe.</span>
+       <div class="chips">${g.members.map((m) => `<button class="chip" data-act="me" data-m="${esc(m.id)}">${esc(m.name)}</button>`).join("")}</div></div>`;
+  const body = { expenses: groupExpenses, balances: groupBalances, charts: groupCharts }[sub](g, me, net);
+  $("main").innerHTML = `
+    <div class="summary">
+      <div class="line">${avatar(g.name, "lg")}<div style="min-width:0"><h1 style="font-size:24px;overflow-wrap:anywhere">${esc(g.name)}</h1>
+        <div class="muted" style="font-size:13px">${g.members.length} people · <span class="money">${gm(spent)}</span> spent</div></div></div>
+      ${meLine}
+      <div class="tools"><button class="small primary" data-act="sub" data-sub="balances">Settle up</button>
+        ${downloads ? `<button class="small" data-act="export">Export CSV</button>` : ""}</div>
+    </div>
+    <div class="subtabs" role="tablist">${[["expenses", "Expenses"], ["balances", "Balances"], ["charts", "Charts"]].map(([k, l]) =>
+      `<button role="tab" data-act="sub" data-sub="${k}" aria-selected="${sub === k}">${l}</button>`).join("")}</div>
+    ${body}`;
+}
+
+function groupExpenses(g, me) {
+  const q = ($("search")?.value || "").trim().toLowerCase(), cat = $("catFilter")?.value || "";
+  const list = gx().filter((e) => {
+    if (cat && (e.kind === "payment" ? "Payment" : e.category || "General") !== cat) return false;
+    if (!q) return true;
+    return [e.desc, e.category, nameOf(e.paidBy), ...Object.keys(e.shares).map(nameOf), (e.amount / 100).toFixed(2)].join(" ").toLowerCase().includes(q);
+  });
+  let lastMonth = "", rows = "";
+  for (const e of list) {
+    const d = new Date(e.at), mKey = monYear.format(d);
+    if (mKey !== lastMonth) { rows += `<div class="monthhead">${mKey}</div>`; lastMonth = mKey; }
+    const isPay = e.kind === "payment", fx = effect(e, me);
+    const foreign = !isPay && e.currency && e.currency !== cur() ? ` · ${money(e.origAmount, e.currency)}` : "";
+    const who = (id) => (id === me ? "you" : esc(nameOf(id)));
+    const sub = isPay ? `${who(e.paidBy)} paid ${who(Object.keys(e.shares)[0])} <span class="money">${gm(e.amount)}</span>`
+      : `${who(e.paidBy)} paid <span class="money">${gm(e.amount)}</span>${foreign}`;
+    const right = isPay ? `<button class="small ghost" data-act="del" data-id="${esc(e.id)}" aria-label="Delete payment">✕</button>`
+      : fx == null ? "" : fx > 0 ? `<div class="right"><span class="pos">you lent</span><span class="money pos">${gm(fx)}</span></div>`
+      : fx < 0 ? `<div class="right"><span class="neg">you borrowed</span><span class="money neg">${gm(-fx)}</span></div>`
+      : `<div class="right"><span class="muted">not involved</span></div>`;
+    rows += `<div class="row${isPay ? "" : " click"}" ${isPay ? "" : `data-act="edit" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="Edit ${esc(e.desc)}"`}>
+      <span class="date">${mon.format(d)}<b>${d.getDate()}</b></span>
+      <span class="av ic-av">${icon(isPay ? "Payment" : e.category)}</span>
+      <div class="grow"><div class="title">${isPay ? "Payment" : esc(e.desc)}</div><div class="sub">${sub}</div></div>${right}</div>`;
+  }
+  const empty = gx().length ? "Nothing matches that search." : "No expenses yet. Tap “Add expense” to log the first one.";
+  return `<div class="filters">
+      <input id="search" type="search" placeholder="Search expenses or people" aria-label="Search expenses" value="${esc($("search")?.value || "")}">
+      <select id="catFilter" aria-label="Category"><option value="">All</option>${options([...CATEGORIES, "Payment"], cat)}</select>
+    </div>
+    <div class="ledger">${rows || `<div class="row"><span class="muted">${empty}</span></div>`}</div>`;
+}
+
+function groupBalances(g, me, net) {
+  const plan = Splits.settle(net);
+  const max = Math.max(1, ...Object.values(net).map(Math.abs));
   const balRows = g.members.map((m) => {
     const c = net[m.id] || 0, w = (Math.abs(c) / max) * 50;
     const label = c > 0 ? `gets back <span class="money pos">${gm(c)}</span>` : c < 0 ? `owes <span class="money neg">${gm(-c)}</span>` : `<span class="muted">settled up</span>`;
     const bar = c ? `<i style="${c > 0 ? `left:50%;width:${w}%;background:var(--pos)` : `right:50%;width:${w}%;background:var(--neg)`}"></i>` : "";
-    return `<div class="row"><div class="grow"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="title">${esc(m.name)}</span><span>${label}</span></div><div class="bar">${bar}</div></div></div>`;
+    return `<div class="row">${avatar(m.name)}<div class="grow"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="title">${esc(m.name)}${m.id === me ? ' <span class="tag">you</span>' : ""}</span><span>${label}</span></div><div class="bar">${bar}</div></div></div>`;
   }).join("");
-
-  const planRows = plan.length ? plan.map((p, i) => {
-    const to = g.members.find((m) => m.id === p.to);
+  const mine = (p) => p.from === me || p.to === me;
+  const planRows = plan.length ? plan.slice().sort((a, b) => mine(b) - mine(a)).map((p) => {
+    const i = plan.indexOf(p), to = g.members.find((m) => m.id === p.to);
     const venmo = to?.venmo && cur() === "USD" ? `<a class="linkbtn" target="_blank" rel="noopener"
       href="https://venmo.com/${encodeURIComponent(to.venmo)}?txn=pay&amount=${(p.amount / 100).toFixed(2)}&note=${encodeURIComponent(g.name)}">Pay on Venmo</a>` : "";
-    return `<div class="row"><div class="grow"><div class="title">${esc(nameOf(p.from))} pays ${esc(nameOf(p.to))}</div>
+    const fromN = p.from === me ? "You" : esc(nameOf(p.from)), toN = p.to === me ? "you" : esc(nameOf(p.to));
+    return `<div class="row">${avatar(nameOf(p.from))}<div class="grow"><div class="title">${fromN} ${p.from === me ? "pay" : "pays"} ${toN}</div>
       <div class="money" style="font-size:17px">${gm(p.amount)}</div></div>
-      <div class="actions">${venmo}<button class="small" data-act="paid" data-i="${i}">Mark paid</button></div></div>`;
+      <div class="actions">${venmo}<button class="small" data-act="paid" data-i="${i}">Record payment</button></div></div>`;
   }).join("") : `<div class="row"><span class="muted">Everyone is square.</span></div>`;
-
-  $("main").innerHTML = `
-    <div class="hero"><h1>${esc(g.name)}</h1>
-      <div class="muted">${g.members.length} people · <span class="money">${gm(spent)}</span> spent · ${esc(cur())}</div>
-      <div class="tools"><button class="small" data-act="settings">Group settings</button>
-        ${downloads ? `<button class="small" data-act="export">Export CSV</button>` : ""}</div></div>
-    <section class="section"><h2>Balances</h2><div class="ledger">${balRows}</div></section>
-    <section class="section"><h2>Settle up</h2><div class="ledger">${planRows}</div></section>
-    ${insightsHtml()}`;
-  renderActivity();
+  return `<section class="section"><h2>Suggested payments</h2><div class="ledger">${planRows}</div></section>
+    <section class="section"><h2>Balances</h2><div class="ledger">${balRows}</div></section>`;
 }
 
-function renderActivity() {
-  const q = $("search").value.trim().toLowerCase(), cat = $("catFilter").value;
-  const list = expenses.filter((e) => {
-    if (cat && (e.kind === "payment" ? "Payment" : e.category || "General") !== cat) return false;
-    if (!q) return true;
-    const hay = [e.desc, e.category, nameOf(e.paidBy), ...Object.keys(e.shares).map(nameOf), (e.amount / 100).toFixed(2)].join(" ").toLowerCase();
-    return hay.includes(q);
-  });
-  $("activity").innerHTML = list.length ? list.map((e) => {
-    const isPay = e.kind === "payment";
-    const to = isPay ? Object.keys(e.shares)[0] : null;
-    const foreign = !isPay && e.currency && e.currency !== cur() ? ` · ${money(e.origAmount, e.currency)}` : "";
-    const sub = isPay ? `${esc(nameOf(e.paidBy))} paid ${esc(nameOf(to))}` :
-      `${esc(nameOf(e.paidBy))} paid · ${esc(e.category || "General")}${foreign}`;
-    return `<div class="row${isPay ? "" : " click"}" ${isPay ? "" : `data-act="edit" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="Edit ${esc(e.desc)}"`}>
-      <span class="date">${day.format(new Date(e.at))}</span>
-      <div class="grow"><div class="title">${isPay ? `<span class="tag">Payment</span> ` : ""}${esc(e.desc)}</div><div class="sub">${sub}</div></div>
-      <span class="money">${gm(e.amount)}</span>
-      ${isPay ? `<button class="small ghost" data-act="del" data-id="${esc(e.id)}" aria-label="Delete payment">✕</button>` : ""}</div>`;
-  }).join("") : `<div class="row"><span class="muted">${expenses.length ? "Nothing matches that search." : "No expenses yet. Tap “Add expense” to log the first one."}</span></div>`;
+function groupCharts() {
+  const spend = gx().filter((e) => e.kind === "expense");
+  if (!spend.length) return `<div class="empty ledger"><p>Charts appear once the group has expenses.</p></div>`;
+  const byCat = {};
+  spend.forEach((e) => (byCat[e.category || "General"] = (byCat[e.category || "General"] || 0) + e.amount));
+  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]), catMax = cats[0][1];
+  const now = new Date(), months = [];
+  for (let i = 5; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push({ y: d.getFullYear(), m: d.getMonth(), label: mon.format(d), total: 0 }); }
+  spend.forEach((e) => { const d = new Date(e.at); const mo = months.find((x) => x.y === d.getFullYear() && x.m === d.getMonth()); if (mo) mo.total += e.amount; });
+  const mMax = Math.max(1, ...months.map((x) => x.total));
+  const short = (c) => (c >= 100000 ? Math.round(c / 100000) + "k" : String(Math.round(c / 100)));
+  return `<section class="section"><h2>Spending by category</h2><div class="ledger chart">
+      ${cats.map(([c, v]) => `<div class="hbar"><span class="muted">${icon(c)}</span><span>${esc(c)}</span><span class="track"><i style="width:${(v / catMax) * 100}%"></i></span><span class="money">${gm(v)}</span></div>`).join("")}
+    </div></section>
+    <section class="section"><h2>Last 6 months</h2><div class="ledger">
+      <div class="months">${months.map((x) => `<div class="col${x.total ? "" : " zero"}" title="${esc(x.label)}: ${gm(x.total)}"><span class="v">${x.total ? short(x.total) : ""}</span><i style="height:${(x.total / mMax) * 100}%"></i></div>`).join("")}</div>
+      <div class="mlabels">${months.map((x) => `<span>${x.label}</span>`).join("")}</div>
+    </div></section>`;
 }
-$("search").addEventListener("input", renderActivity);
-$("catFilter").addEventListener("change", renderActivity);
-$("catFilter").innerHTML = `<option value="">All</option>` + options([...CATEGORIES, "Payment"]);
 
 // Two-tap confirm instead of confirm(), which the viewer blocks.
 function armed(btn, label) {
@@ -457,20 +617,28 @@ function armed(btn, label) {
 }
 
 document.addEventListener("click", async (ev) => {
-  const t = ev.target.closest("[data-act],[data-close]");
+  const t = ev.target.closest("[data-act],[data-close],[data-tab]");
   if (!t) return;
   if (t.hasAttribute("data-close")) return t.closest("dialog").close();
+  if (t.closest("#tabs")) return go(t.dataset.tab);
   const act = t.dataset.act;
+  if (act === "tab") go(t.dataset.tab);
+  if (act === "open-group") openGroup(t.dataset.id);
+  if (act === "sub") { sub = t.dataset.sub; render(); }
   if (act === "new-group") openGroupDlg(null);
   if (act === "settings") openGroupDlg(group());
   if (act === "example") addExample();
-  if (act === "edit") openExpDlg(expenses.find((e) => e.id === t.dataset.id));
+  if (act === "me") { setMe(group(), t.dataset.m); render(); }
+  if (act === "me-reset") { try { localStorage.removeItem("me:" + gid); } catch {} render(); }
+  if (act === "edit") openExpDlg(gx().find((e) => e.id === t.dataset.id));
+  if (act === "open-exp") { openGroup(t.dataset.gid); openExpDlg(gx().find((e) => e.id === t.dataset.id)); }
+  if (act === "pick") { $("pickDlg").close(); gid = t.dataset.id; openExpDlg(null); }
   if (act === "export") exportCsv();
   if (act === "del" && armed(t, "Delete?")) {
     try { await store.deleteExpense(t.dataset.id); } catch (e) { writeFailed(e); }
   }
   if (act === "paid" && armed(t, "Confirm")) {
-    const g = group(), p = Splits.settle(Splits.balances(expenses, g.members.map((m) => m.id)))[+t.dataset.i];
+    const g = group(), p = Splits.settle(netFor(g))[+t.dataset.i];
     if (p) try {
       await store.addExpense({ groupId: g.id, kind: "payment", desc: "Settled up", amount: p.amount, paidBy: p.from, shares: { [p.to]: p.amount }, at: Date.now() });
     } catch (e) { writeFailed(e); }
@@ -479,14 +647,23 @@ document.addEventListener("click", async (ev) => {
 document.addEventListener("keydown", (ev) => {
   if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches?.(".row.click")) { ev.preventDefault(); ev.target.click(); }
 });
-$("groupSel").addEventListener("change", (e) => selectGroup(e.target.value));
-$("newGroupBtn").addEventListener("click", () => openGroupDlg(null));
+document.addEventListener("input", (ev) => { if (ev.target.id === "search") render(); });
+document.addEventListener("change", (ev) => { if (ev.target.id === "catFilter") render(); });
+
+$("fab").addEventListener("click", () => {
+  if (tab === "group" && group()) return openExpDlg(null);
+  if (groups.length === 1) { gid = groups[0].id; return openExpDlg(null); }
+  $("pickList").innerHTML = groups.map((g) => `<button type="button" data-act="pick" data-id="${esc(g.id)}">${avatar(g.name, "sq")}<span>${esc(g.name)}</span></button>`).join("");
+  $("pickDlg").showModal();
+});
+// Opening the expense form from another tab borrows a group without leaving that tab.
+$("expDlg").addEventListener("close", () => { if (tab !== "group") gid = null; });
 
 async function exportCsv() {
   const g = group();
   try {
     await downloads.save({ filename: `${g.name.replace(/[^\w\- ]+/g, "").trim() || "halves"}.csv`,
-      data: Splits.toCSV(expenses.slice().reverse(), g.members, cur()) });
+      data: Splits.toCSV(gx().slice().reverse(), g.members, cur()) });
   } catch (e) { if (e?.code !== "declined") showNotice("Couldn't export right now. Try again in a moment.", true); }
 }
 
@@ -494,15 +671,16 @@ async function exportCsv() {
 let editingGroup = null, draftMembers = [];
 function openGroupDlg(g) {
   editingGroup = g;
-  const used = new Set(expenses.flatMap((e) => [e.paidBy, ...Object.keys(e.shares)]));
+  const used = new Set((g ? gx(g.id) : []).flatMap((e) => [e.paidBy, ...Object.keys(e.shares)]));
   draftMembers = g ? g.members.map((m) => ({ ...m, locked: used.has(m.id) })) : [{ id: uid(), name: "", venmo: "" }, { id: uid(), name: "", venmo: "" }];
   $("gTitle").textContent = g ? "Group settings" : "New group";
   $("gSave").textContent = g ? "Save changes" : "Create group";
   $("gName").value = g?.name || "";
   $("gCur").innerHTML = options(CURRENCIES, g?.currency || "USD");
-  const fixedCur = !!g && expenses.some((e) => e.kind === "expense");
+  const fixedCur = !!g && gx(g.id).some((e) => e.kind === "expense");
   $("gCur").disabled = fixedCur; $("gCurNote").hidden = !fixedCur;
   $("gErr").textContent = "";
+  $("gDefault").innerHTML = "";
   renderMembers();
   $("groupDlg").showModal();
 }
@@ -533,15 +711,14 @@ $("groupForm").addEventListener("submit", async (ev) => {
   const members = draftMembers.map((m) => ({ id: m.id, name: m.name.trim(), venmo: m.venmo.replace(/[@\s]/g, "") })).filter((m) => m.name);
   if (!name) return err("Give the group a name.");
   if (members.length < 2) return err("Add at least two people.");
-  const lost = draftMembers.find((m) => m.locked && !m.name.trim());
-  if (lost) return err("People with expenses need a name.");
+  if (draftMembers.find((m) => m.locked && !m.name.trim())) return err("People with expenses need a name.");
   const defaultSplit = {};
   document.querySelectorAll("[data-gdef]").forEach((x) => { const v = parseFloat(x.value); if (v > 0 && members.some((m) => m.id === x.dataset.gdef)) defaultSplit[x.dataset.gdef] = v; });
   const data = { name, currency: $("gCur").value, members, createdAt: editingGroup?.createdAt || Date.now() };
   if (Object.keys(defaultSplit).length) data.defaultSplit = defaultSplit;
   try {
     if (editingGroup) await store.saveGroup(editingGroup.id, data);
-    else selectGroup(await store.addGroup(data));
+    else openGroup(await store.addGroup(data));
     $("groupDlg").close();
   } catch (e) { writeFailed(e); $("groupDlg").close(); }
 });
@@ -556,11 +733,13 @@ function chipsHtml(selected, attrs) {
 }
 function openExpDlg(e) {
   editing = e || null;
-  const g = group(), all = allIds(), split = e?.split || legacySplit(e);
+  const g = group(), ids = allIds(), split = e?.split || legacySplit(e), me = meOf(g);
   $("expForm").reset(); $("expErr").textContent = ""; $("scanStatus").textContent = "Snap the bill and Claude lists the items.";
   $("expTitle").textContent = e ? "Edit expense" : "Add expense";
+  $("expGroup").textContent = `in ${g.name}`;
   $("expDelete").hidden = !e;
-  $("expPayer").innerHTML = g.members.map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");
+  $("expPayer").innerHTML = g.members.map((m) => `<option value="${esc(m.id)}">${esc(m.id === me ? m.name + " (you)" : m.name)}</option>`).join("");
+  if (me) $("expPayer").value = me;
   $("expCur").innerHTML = options(CURRENCIES, e?.currency || cur());
   $("expCat").innerHTML = options(CATEGORIES, e?.category || "General");
   $("expDate").value = new Date((e?.at || Date.now()) - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
@@ -568,14 +747,14 @@ function openExpDlg(e) {
   if (e) { $("expDesc").value = e.desc; $("expPayer").value = e.paidBy; $("expAmt").value = fixed(e.origAmount ?? e.amount); }
   const def = g.defaultSplit;
   const m = e ? split.mode : def ? "shares" : "equal";
-  $("paneEqual").innerHTML = chipsHtml(m === "equal" && e ? split.who : all, 'data-pane="equal"');
+  $("paneEqual").innerHTML = chipsHtml(m === "equal" && e ? split.who : ids, 'data-pane="equal"');
   const exact = m === "exact" ? split.exact : {};
   $("paneExact").innerHTML = g.members.map((x) => `<div class="prow"><span>${esc(x.name)}</span><input class="num" inputmode="decimal" placeholder="0.00" data-exact="${esc(x.id)}" value="${fixed(exact[x.id] || 0)}" aria-label="${esc(x.name)} owes"></div>`).join("")
     + `<div class="muted" id="exactLeft" style="font-size:13px"></div>`;
   const weights = m === "shares" ? (e ? split.weights : def) : def || {};
   $("paneShares").innerHTML = g.members.map((x) => `<div class="prow"><span>${esc(x.name)}</span><input class="num" inputmode="decimal" placeholder="0" data-weight="${esc(x.id)}" value="${esc(weights[x.id] ?? "")}" aria-label="${esc(x.name)} share"><span class="calc money" data-wcalc="${esc(x.id)}"></span></div>`).join("")
     + `<label class="check"><input type="checkbox" id="saveDefault"> Save as this group's default split</label>`;
-  items = m === "items" ? split.items.map((it) => ({ ...it, who: it.who.slice() })) : [{ name: "", price: 0, who: all.slice() }];
+  items = m === "items" ? split.items.map((it) => ({ ...it, who: it.who.slice() })) : [{ name: "", price: 0, who: ids.slice() }];
   $("itTax").value = m === "items" ? fixed(split.tax) : ""; $("itTip").value = m === "items" ? fixed(split.tip) : "";
   setMode(m);
   renderItems(); syncMode(); syncRate();
@@ -594,7 +773,6 @@ function syncMode() {
   if (m === "items") itemsTotal(); else { exactLeft(); sharesCalc(); }
 }
 document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", syncMode));
-$("fab").addEventListener("click", () => openExpDlg(null));
 
 async function syncRate() {
   const from = $("expCur").value, to = cur(), box = $("rateBox");
@@ -603,7 +781,7 @@ async function syncRate() {
   $("rateFrom").textContent = `1 ${from} =`; $("rateTo").textContent = to;
   if ($("expRate").value) { $("rateNote").textContent = ""; return; }
   const remembered = rememberedRate(from, to);
-  if (remembered) { $("expRate").value = remembered; $("rateNote").textContent = "last rate you used"; }
+  if (remembered) $("expRate").value = remembered;
   $("rateNote").textContent = remembered ? "last rate you used · checking live rate…" : "checking live rate…";
   const live = await liveRate(from, to);
   if ($("expCur").value !== from) return;
@@ -675,8 +853,8 @@ $("scanFile").addEventListener("change", async (ev) => {
       "price is the line total in the receipt's currency, including quantity, with any discount already subtracted. Leave subtotal, tax, tip and total lines out of items. Use 0 for tax or tip when the receipt has none. " +
       `currency is the ISO code printed or implied on the receipt, one of ${CURRENCIES.join(", ")}, or "" if unclear. category is one of: ${CATEGORIES.join(", ")}.`,
       { images: [file] });
-    const all = allIds();
-    const got = (Array.isArray(r?.items) ? r.items : []).map((x) => ({ name: String(x.name || "Item").slice(0, 80), price: Math.max(0, toCents(x.price)), who: all.slice() })).filter((x) => x.price);
+    const ids = allIds();
+    const got = (Array.isArray(r?.items) ? r.items : []).map((x) => ({ name: String(x.name || "Item").slice(0, 80), price: Math.max(0, toCents(x.price)), who: ids.slice() })).filter((x) => x.price);
     if (!got.length) { status.textContent = "Couldn't find any items on that photo. Try a sharper, straight-on shot."; return; }
     items = got;
     $("itTax").value = r.tax > 0 ? (+r.tax).toFixed(2) : "";
@@ -755,9 +933,10 @@ const stripId = ({ id, ...rest }) => rest;
   else {
     store = memoryStore();
     showNotice("Preview mode with an example trip. Open this page signed in to claude.ai to save groups and share them.");
-    await addExample();
   }
   store.watchGroups(onGroups);
+  store.watchExpenses(onExpenses);
+  if (!db) await addExample();
   if (window.claude) {
     const [sample, dl] = await Promise.all([claude.use("sample").catch(() => null), claude.use("downloads").catch(() => null)]);
     if (dl) { downloads = dl; render(); }
