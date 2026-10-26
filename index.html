@@ -54,7 +54,9 @@ svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-wid
 /* Header */
 .top { display: flex; align-items: center; gap: 10px; min-height: 40px; }
 .top .title { font-family: var(--display); font-weight: 700; font-size: 22px; margin-right: auto; letter-spacing: -.01em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.top .title span { color: var(--accent); }
+.top .title .dot { color: var(--accent); }
+.d-only { display: none; }
+@media (min-width: 900px) { .m-only { display: none; } .d-only { display: inline; } }
 .back { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 6px 4px; color: var(--accent); font-weight: 500; }
 .notice { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 14px; font-size: 13px; color: var(--muted); }
 .notice.error { border-color: var(--neg); color: var(--neg); }
@@ -161,13 +163,50 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; 
 .pick { display: flex; flex-direction: column; gap: 8px; }
 .pick button { display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 12px; }
 @media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } .summary .big { font-size: 22px; } .seg label { font-size: 13px; } }
+
+/* Group screen: one pane at a time on phones (sub-tabs), all panes side by side on wide screens. */
+.gwrap { display: flex; flex-direction: column; gap: 20px; }
+.gcol { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.gwrap [data-pane] { display: flex; flex-direction: column; gap: 20px; }
+.gwrap [data-pane]:not(.on) { display: none; }
+
+/* Sidebar (wide screens only) */
+.side { display: none; }
+.side .brand { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: -.01em; padding: 0 8px; }
+.side .brand span { color: var(--accent); }
+.side nav { display: flex; flex-direction: column; gap: 2px; }
+.side nav button, .side .glist button { display: flex; align-items: center; gap: 10px; border: 0; background: none; text-align: left; padding: 9px 10px; border-radius: 10px; color: var(--muted); font-weight: 500; width: 100%; }
+.side nav button:hover, .side .glist button:hover { background: var(--raised); color: var(--fg); }
+.side nav button[aria-current="page"], .side .glist button[aria-current="page"] { background: var(--raised); color: var(--fg); }
+.side .glist { display: flex; flex-direction: column; gap: 2px; }
+.side .glist .av { width: 28px; height: 28px; font-size: 12px; border-radius: 8px; }
+.side .glist .gname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side .glist .money { font-size: 12px; }
+.side h2 { padding: 0 10px; }
+
+@media (min-width: 900px) {
+  .shell { display: grid; grid-template-columns: 272px minmax(0, 1fr); min-height: 100vh; }
+  .side { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--surface); border-right: 1px solid var(--line);
+    padding-block: 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; }
+  .tabbar, .fab, .subtabs { display: none !important; }
+  .app { max-width: 1160px; padding-block: 28px 56px; padding-left: 40px; padding-right: max(40px, env(safe-area-inset-right, 0px)); }
+  #main[data-view="list"] { max-width: 760px; }
+  .top .title { font-size: 28px; }
+  .gwrap { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); gap: 28px; align-items: start; }
+  .gwrap [data-pane]:not(.on) { display: flex; }
+  dialog { width: min(600px, calc(100vw - 48px)); }
+}
 @media (prefers-reduced-motion: no-preference) { button { transition: border-color .15s, background .15s; } }
 </style>
 
+<div class="shell">
+<aside class="side" id="side" aria-label="Navigation"></aside>
 <div class="app">
-  <header class="top" id="top"><div class="title">Halves<span>.</span></div></header>
+  <header class="top" id="top"><div class="title">Halves<span class="dot">.</span></div></header>
   <div id="notice" class="notice" hidden></div>
   <main id="main" style="display:flex;flex-direction:column;gap:20px"><div class="empty"><p>Loading your groups…</p></div></main>
+</div>
 </div>
 <button id="fab" class="primary fab" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add expense</button>
 <div class="tabbar"><nav id="tabs" aria-label="Sections">
@@ -421,15 +460,35 @@ function render() {
   const active = tab === "group" ? "groups" : tab;
   document.querySelectorAll("#tabs button").forEach((b) => (b.dataset.tab === active ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
   $("fab").hidden = !groups.length;
+  $("main").dataset.view = tab === "group" ? "group" : "list";
   const views = { groups: viewGroups, friends: viewFriends, activity: viewActivity, group: viewGroup };
   views[tab]();
+  renderSide(active);
   if (s && $("search")) { $("search").value = s.v; $("search").focus(); $("search").setSelectionRange(s.p, s.p); }
 }
 function header(html) { $("top").innerHTML = html; }
-const brand = `<div class="title">Halves<span>.</span></div>`;
+// Phones show the app name up top; wide screens have it in the sidebar, so the header names the page instead.
+const brand = (page) => `<div class="title"><span class="m-only">Halves<span class="dot">.</span></span><span class="d-only">${page}</span></div>`;
+
+// Wide-screen sidebar: the same three sections as the phone tab bar, plus your groups.
+function renderSide(active) {
+  const navIcon = (t) => document.querySelector(`#tabs [data-tab="${t}"] svg`).outerHTML;
+  const nav = [["groups", "Groups"], ["friends", "Friends"], ["activity", "Activity"]].map(([t, l]) =>
+    `<button data-act="tab" data-tab="${t}"${active === t && tab !== "group" ? ' aria-current="page"' : ""}>${navIcon(t)}${l}</button>`).join("");
+  const list = groups.map((g) => {
+    const me = meOf(g), c = me ? netFor(g)[me] : 0;
+    const amt = c ? `<span class="money ${c > 0 ? "pos" : "neg"}">${c > 0 ? "+" : "−"}${gm(Math.abs(c), g)}</span>` : "";
+    return `<button data-act="open-group" data-id="${esc(g.id)}"${tab === "group" && g.id === gid ? ' aria-current="page"' : ""}>${avatar(g.name, "sq")}<span class="gname">${esc(g.name)}</span>${amt}</button>`;
+  }).join("");
+  $("side").innerHTML = `<div class="brand">Halves<span>.</span></div>
+    ${groups.length ? `<button class="primary" data-act="add" style="margin:0 2px">+ Add expense</button>` : ""}
+    <nav>${nav}</nav>
+    <div class="section"><h2>Your groups</h2><div class="glist">${list}
+      <button data-act="new-group"><span class="av ic-av" style="width:28px;height:28px">+</span>New group</button></div></div>`;
+}
 
 function viewGroups() {
-  header(`${brand}<button class="small" data-act="new-group">New group</button>`);
+  header(`${brand("Groups")}<button class="small" data-act="new-group">New group</button>`);
   if (!groups.length) {
     $("main").innerHTML = `<div class="empty ledger">
       <h1 style="font-size:24px">Split the bill, not the friendship</h1>
@@ -462,7 +521,7 @@ function viewGroups() {
 }
 
 function viewFriends() {
-  header(`${brand}`);
+  header(`${brand("Friends")}`);
   // Pair you with each person through each group's settle-up plan, then add up by name.
   const friends = {};
   let anyMe = false;
@@ -491,7 +550,7 @@ function viewFriends() {
 }
 
 function viewActivity() {
-  header(`${brand}`);
+  header(`${brand("Activity")}`);
   const list = all.slice(0, 60);
   $("main").innerHTML = !list.length ? `<div class="empty ledger"><p>Nothing yet. Expenses and payments from all your groups show up here.</p></div>`
     : `<section class="section"><h2>Recent activity</h2><div class="ledger">${list.map((e) => {
@@ -518,7 +577,7 @@ function viewGroup() {
        <span class="muted" style="font-size:13px">You're ${esc(nameOf(me))} · <button class="link" data-act="me-reset">change</button></span>`
     : `<div class="whoami"><span style="font-weight:500">Which one is you?</span><span class="muted" style="font-size:13px">Saved on this device so Halves can show what you owe.</span>
        <div class="chips">${g.members.map((m) => `<button class="chip" data-act="me" data-m="${esc(m.id)}">${esc(m.name)}</button>`).join("")}</div></div>`;
-  const body = { expenses: groupExpenses, balances: groupBalances, charts: groupCharts }[sub](g, me, net);
+  const pane = (k, html) => `<div data-pane="${k}"${sub === k ? ' class="on"' : ""}>${html}</div>`;
   $("main").innerHTML = `
     <div class="summary">
       <div class="line">${avatar(g.name, "lg")}<div style="min-width:0"><h1 style="font-size:24px;overflow-wrap:anywhere">${esc(g.name)}</h1>
@@ -529,7 +588,10 @@ function viewGroup() {
     </div>
     <div class="subtabs" role="tablist">${[["expenses", "Expenses"], ["balances", "Balances"], ["charts", "Charts"]].map(([k, l]) =>
       `<button role="tab" data-act="sub" data-sub="${k}" aria-selected="${sub === k}">${l}</button>`).join("")}</div>
-    ${body}`;
+    <div class="gwrap">
+      <div class="gcol">${pane("expenses", `<h2 class="d-only">Expenses</h2>${groupExpenses(g, me)}`)}</div>
+      <div class="gcol">${pane("balances", groupBalances(g, me, net))}${pane("charts", groupCharts())}</div>
+    </div>`;
 }
 
 function groupExpenses(g, me) {
@@ -624,7 +686,12 @@ document.addEventListener("click", async (ev) => {
   const act = t.dataset.act;
   if (act === "tab") go(t.dataset.tab);
   if (act === "open-group") openGroup(t.dataset.id);
-  if (act === "sub") { sub = t.dataset.sub; render(); }
+  if (act === "sub") {
+    sub = t.dataset.sub; render();
+    // wide screens show every pane at once, so jump to the one asked for instead
+    if (matchMedia("(min-width: 900px)").matches) document.querySelector(`[data-pane="${sub}"]`)?.scrollIntoView({ block: "start" });
+  }
+  if (act === "add") addExpense();
   if (act === "new-group") openGroupDlg(null);
   if (act === "settings") openGroupDlg(group());
   if (act === "example") addExample();
@@ -650,12 +717,13 @@ document.addEventListener("keydown", (ev) => {
 document.addEventListener("input", (ev) => { if (ev.target.id === "search") render(); });
 document.addEventListener("change", (ev) => { if (ev.target.id === "catFilter") render(); });
 
-$("fab").addEventListener("click", () => {
+$("fab").addEventListener("click", addExpense);
+function addExpense() {
   if (tab === "group" && group()) return openExpDlg(null);
   if (groups.length === 1) { gid = groups[0].id; return openExpDlg(null); }
   $("pickList").innerHTML = groups.map((g) => `<button type="button" data-act="pick" data-id="${esc(g.id)}">${avatar(g.name, "sq")}<span>${esc(g.name)}</span></button>`).join("");
   $("pickDlg").showModal();
-});
+}
 // Opening the expense form from another tab borrows a group without leaving that tab.
 $("expDlg").addEventListener("close", () => { if (tab !== "group") gid = null; });
 
