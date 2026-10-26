@@ -76,6 +76,7 @@ Matches Splitwise Pro, except card import:
 - Charts: spending by category and by month
 - Search and filter expenses by text, person or category
 - Edit or delete any expense; group settings for people, Venmo usernames and currency
+- Dark, light or system theme, remembered on each device
 - CSV export, one column per person, in the same layout as Splitwise's export
 - Fewest-payment settle-up plan, Venmo pay links and payment records
 
